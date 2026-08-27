@@ -7,6 +7,7 @@ import os from 'node:os';
 import { Manager } from '../core/manager.js';
 import { authMiddleware } from './auth.js';
 import { config } from '../config.js';
+import { createWsToken } from './ws.js';
 import * as files from '../features/files.js';
 
 export function buildRouter(manager) {
@@ -59,6 +60,12 @@ export function buildRouter(manager) {
     if (!currentPassword || !newPassword) throw new Error('currentPassword and newPassword required');
     manager.changePassword(req.user.id, currentPassword, newPassword);
     return { ok: true, message: 'Password changed successfully' };
+  }));
+
+  // --- WebSocket token exchange (avoids session token in URL logs) ------
+  router.post('/auth/ws-token', auth, wrap(async (req) => {
+    const token = createWsToken(req.user.id);
+    return { token, expiresIn: 300 };
   }));
 
   // --- projects (workspaces) ---------------------------------------------

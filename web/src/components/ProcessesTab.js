@@ -17,14 +17,17 @@ export default function ProcessesTab({ id }) {
   useEffect(() => { load(); }, [id]);
 
   useEffect(() => {
-    const ws = processSocket(id, (msg) => {
-      if (msg.type === 'process' || msg.type === 'process-exit') {
-        setLog((prev) => [...prev.slice(-500), `[${msg.type}] ${msg.line || JSON.stringify(msg)}`]);
-        if (msg.type === 'process-exit') load();
-      }
-    });
-    wsRef.current = ws;
-    return () => { try { ws.close(); } catch {} };
+    let ws;
+    (async () => {
+      ws = await processSocket(id, (msg) => {
+        if (msg.type === 'process' || msg.type === 'process-exit') {
+          setLog((prev) => [...prev.slice(-500), `[${msg.type}] ${msg.line || JSON.stringify(msg)}`]);
+          if (msg.type === 'process-exit') load();
+        }
+      });
+      wsRef.current = ws;
+    })();
+    return () => { try { ws && ws.close(); } catch {} };
   }, [id]);
 
   useEffect(() => {

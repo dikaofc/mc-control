@@ -38,6 +38,25 @@ async function request(method, path, body, auth = true) {
   return data;
 }
 
+// Get a short-lived WS token so session token stays out of URL logs.
+async function getWsToken() {
+  try {
+    const res = await request('POST', '/api/auth/ws-token', {});
+    return res.token;
+  } catch {
+    return null; // fallback to session token
+  }
+}
+
+function wsHost() {
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  if (BASE && BASE.startsWith('http')) {
+    const u = new URL(BASE);
+    return (proto === 'wss' ? 'wss' : 'ws') + '://' + u.host;
+  }
+  return proto + '://' + window.location.host;
+}
+
 export const api = {
   login: (username, password) => request('POST', '/api/auth/login', { username, password }, false),
   register: (username, password) => request('POST', '/api/auth/register', { username, password }, false),
@@ -64,45 +83,26 @@ export const api = {
   runProcess: (id, command) => request('POST', `/api/projects/${id}/processes`, { command }),
   stopProcess: (id, pid) => request('DELETE', `/api/projects/${id}/processes/${pid}`),
 
-  // exposed ports (reverse proxy through the single public port)
-  ports: (id) => request('GET', `/api/projects/${id}/ports`),
-  exposePort: (id, port) => request('POST', `/api/projects/${id}/ports`, { port }),
-  unexposePort: (id, port) => request('DELETE', `/api/projects/${id}/ports/${port}`),
-
   // system
   system: () => request('GET', '/api/system'),
 };
 
-// Terminal (PTY) WebSocket.
-export function terminalSocket(projectId, onMessage) {
-  const token = getToken();
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  let host;
-  if (BASE && BASE.startsWith('http')) {
-    const u = new URL(BASE);
-    host = (proto === 'wss' ? 'wss' : 'ws') + '://' + u.host;
-  } else {
-    host = proto + '://' + window.location.host;
-  }
-  const ws = new WebSocket(`${host}/ws?mode=terminal&projectId=${projectId || ''}&token=${token}`);
+// Terminal (PTY) WebSocket — uses short-lived WS token, not session token.
+export async function terminalSocket(projectId, onMessage) {
+  const wsToken = await getWsToken();
+  const token = wsToken || getToken(); // fallback to session token if exchange fails
+  const ws = new WebSocket(`${wsHost()}/ws?mode=terminal&projectId=${projectId || ''}&token=${token}`);
   ws.onmessage = (e) => {
     try { onMessage(JSON.parse(e.data)); } catch {}
   };
   return ws;
 }
 
-// Process-output WebSocket (streams output of background runs).
-export function processSocket(projectId, onMessage) {
-  const token = getToken();
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  let host;
-  if (BASE && BASE.startsWith('http')) {
-    const u = new URL(BASE);
-    host = (proto === 'wss' ? 'wss' : 'ws') + '://' + u.host;
-  } else {
-    host = proto + '://' + window.location.host;
-  }
-  const ws = new WebSocket(`${host}/ws?projectId=${projectId}&token=${token}`);
+// Process-output WebSocket.
+export async function processSocket(projectId, onMessage) {
+  const wsToken = await getWsToken();
+  const token = wsToken || getToken();
+  const ws = new WebSocket(`${wsHost()}/ws?projectId=${projectId}&token=${token}`);
   ws.onmessage = (e) => {
     try { onMessage(JSON.parse(e.data)); } catch {}
   };
