@@ -18,10 +18,16 @@ function serverPath(manager, serverId, userId, rel = '') {
 
 const IGNORE = new Set(['session.lock']);
 
+const MAX_LIST_ENTRIES = 500;
+
 export function listFiles(manager, serverId, userId, rel = '') {
   const { target } = serverPath(manager, serverId, userId, rel);
   if (!fs.existsSync(target)) return [];
-  return fs.readdirSync(target, { withFileTypes: true }).map((d) => {
+  const entries = fs.readdirSync(target, { withFileTypes: true });
+  if (entries.length > MAX_LIST_ENTRIES) {
+    throw new Error(`Directory has ${entries.length} entries (max ${MAX_LIST_ENTRIES}). Use the terminal.`);
+  }
+  return entries.map((d) => {
     const p = path.join(target, d.name);
     let size = 0, mtime = 0;
     try { const st = fs.statSync(p); size = st.size; mtime = st.mtimeMs; } catch {}
@@ -37,13 +43,22 @@ export function listFiles(manager, serverId, userId, rel = '') {
 
 export function readFile(manager, serverId, userId, rel) {
   const { target } = serverPath(manager, serverId, userId, rel);
-  if (fs.statSync(target).isDirectory()) throw new Error('Path is a directory');
+  const stat = fs.statSync(target);
+  if (stat.isDirectory()) throw new Error('Path is a directory');
+  // Limit read to 2MB to prevent memory exhaustion
+  const MAX_READ = 2 * 1024 * 1024;
+  if (stat.size > MAX_READ) throw new Error('File too large to read (> 2MB). Use the terminal.');
   const buf = fs.readFileSync(target);
   return { name: path.basename(target), content: buf.toString('utf8'), size: buf.length };
 }
 
+const MAX_WRITE = 2 * 1024 * 1024; // 2MB write limit
+
 export function writeFile(manager, serverId, userId, rel, content) {
   const { target } = serverPath(manager, serverId, userId, rel);
+  if (typeof content === 'string' && content.length > MAX_WRITE) {
+    throw new Error('File too large (> 2MB). Use the terminal.');
+  }
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, content ?? '');
   return { ok: true, path: rel };

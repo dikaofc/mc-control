@@ -7,6 +7,7 @@ import { api, getToken } from '../../lib/api';
 import FilesTab from '../../components/FilesTab';
 import ProcessesTab from '../../components/ProcessesTab';
 import SystemTab from '../../components/SystemTab';
+import PortsTab from '../../components/PortsTab';
 
 const Terminal = dynamic(() => import('../../components/Terminal'), { ssr: false });
 
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'terminal', label: 'Terminal' },
   { id: 'files', label: 'Files' },
   { id: 'processes', label: 'Processes' },
+  { id: 'ports', label: 'Ports' },
   { id: 'system', label: 'System' },
 ];
 
@@ -57,6 +59,7 @@ function ProjectPage() {
         {tab === 'terminal' && <Terminal projectId={id} />}
         {tab === 'files' && <FilesTab id={id} />}
         {tab === 'processes' && <ProcessesTab id={id} />}
+        {tab === 'ports' && <PortsTab id={id} />}
         {tab === 'system' && <SystemTab />}
       </div>
     </div>

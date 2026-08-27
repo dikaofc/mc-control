@@ -64,6 +64,11 @@ export const api = {
   runProcess: (id, command) => request('POST', `/api/projects/${id}/processes`, { command }),
   stopProcess: (id, pid) => request('DELETE', `/api/projects/${id}/processes/${pid}`),
 
+  // exposed ports (reverse proxy through the single public port)
+  ports: (id) => request('GET', `/api/projects/${id}/ports`),
+  exposePort: (id, port) => request('POST', `/api/projects/${id}/ports`, { port }),
+  unexposePort: (id, port) => request('DELETE', `/api/projects/${id}/ports/${port}`),
+
   // system
   system: () => request('GET', '/api/system'),
 };

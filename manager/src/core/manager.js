@@ -33,6 +33,8 @@ export class Manager {
 
   // Self-registration is ALWAYS a normal user. Role is never taken from input.
   registerUser(username, password) {
+    if (!username || username.length < 3) throw new Error('Username must be at least 3 characters');
+    if (!password || password.length < 8) throw new Error('Password must be at least 8 characters');
     if (this.findUserByName(username)) throw new Error('Username already exists');
     const id = uid('usr');
     this.store.insert('users', {
@@ -52,7 +54,7 @@ export class Manager {
     const u = this.findUserById(userId);
     if (!u) throw new Error('User not found');
     if (!verifyPassword(currentPassword, u.password)) throw new Error('Current password is incorrect');
-    if (!newPassword || newPassword.length < 4) throw new Error('New password must be at least 4 characters');
+    if (!newPassword || newPassword.length < 8) throw new Error('New password must be at least 8 characters');
     this.store.update('users', userId, { password: createPassword(newPassword) });
     return true;
   }

@@ -1,6 +1,7 @@
 // Express API router for the VPS control panel manager.
 import express from 'express';
 import RateLimit from 'express-rate-limit';
+import http from 'node:http';
 import { execSync } from 'node:child_process';
 import os from 'node:os';
 import { Manager } from '../core/manager.js';
@@ -129,5 +130,64 @@ export function buildRouter(manager) {
   }));
   router.delete('/projects/:id/processes/:pid', auth, wrap(async (req) => manager.processes.stop(req.params.pid, req.user.id)));
 
+  // --- exposed ports (reverse proxy through the single public $PORT) ------
+  // Railway exposes only one port. To "open" an app running inside a workspace
+  // (e.g. `node app.js` on :3000), we proxy /api/projects/:id/proxy/<port> to
+  // localhost:<port> inside the container. No extra infra, no third-party tunnel.
+  const exposed = new Map(); // projectId -> Set<port>
+
+  router.get('/projects/:id/ports', auth, wrap(async (req) => {
+    const p = manager.getProject(req.params.id, req.user.id);
+    if (!p) throw new Error('Project not found');
+    return [...(exposed.get(req.params.id) || [])].sort((a, b) => a - b);
+  }));
+
+  router.post('/projects/:id/ports', auth, wrap(async (req) => {
+    const p = manager.getProject(req.params.id, req.user.id);
+    if (!p) throw new Error('Project not found');
+    const port = Number(req.body.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('port must be 1-65535');
+    if (!exposed.has(req.params.id)) exposed.set(req.params.id, new Set());
+    exposed.get(req.params.id).add(port);
+    return [...exposed.get(req.params.id)];
+  }));
+
+  router.delete('/projects/:id/ports/:port', auth, wrap(async (req) => {
+    const p = manager.getProject(req.params.id, req.user.id);
+    if (!p) throw new Error('Project not found');
+    const port = Number(req.params.port);
+    exposed.get(req.params.id)?.delete(port);
+    return [...(exposed.get(req.params.id) || [])];
+  }));
+
+  // Proxy to a locally-listening port inside the workspace's container.
+  router.all('/projects/:id/proxy/:port', auth, (req, res) => {
+    const port = Number(req.params.port);
+    if (!exposed.get(req.params.id)?.has(port)) {
+      return res.status(404).json({ error: 'Port not exposed' });
+    }
+    const target = http.request(
+      { host: '127.0.0.1', port, method: req.method, path: req.originalUrl.replace(/.*\/proxy\/\d+/, '/'), headers: stripHop(req.headers) },
+      (up) => {
+        res.status(up.statusCode);
+        for (const [k, v] of Object.entries(up.headers)) {
+          if (!/connection|transfer-encoding/i.test(k)) res.setHeader(k, v);
+        }
+        up.pipe(res);
+      }
+    );
+    target.on('error', () => res.status(502).json({ error: 'Upstream not listening on this port' }));
+    req.pipe(target);
+  });
+
   return router;
+}
+
+// Remove hop-by-hop headers before forwarding (avoid proxy loops / broken framing).
+function stripHop(headers) {
+  const out = {};
+  for (const [k, v] of Object.entries(headers)) {
+    if (!/^(connection|keep-alive|transfer-encoding|upgrade|proxy-)/i.test(k)) out[k] = v;
+  }
+  return out;
 }
