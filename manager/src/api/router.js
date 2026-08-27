@@ -41,6 +41,13 @@ export function buildRouter(manager) {
     user: { id: req.user.id, username: req.user.username, role: req.user.role },
   })));
 
+  router.post('/auth/change-password', auth, wrap(async (req) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) throw new Error('currentPassword and newPassword required');
+    manager.changePassword(req.user.id, currentPassword, newPassword);
+    return { ok: true, message: 'Password changed successfully' };
+  }));
+
   // --- projects (workspaces) ---------------------------------------------
   router.get('/projects', auth, wrap(async (req) => manager.listProjects(req.user.id)));
   router.post('/projects', auth, wrap(async (req) => manager.createProject(req.body, req.user.id)));

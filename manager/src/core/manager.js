@@ -48,6 +48,15 @@ export class Manager {
     return u;
   }
 
+  changePassword(userId, currentPassword, newPassword) {
+    const u = this.findUserById(userId);
+    if (!u) throw new Error('User not found');
+    if (!verifyPassword(currentPassword, u.password)) throw new Error('Current password is incorrect');
+    if (!newPassword || newPassword.length < 4) throw new Error('New password must be at least 4 characters');
+    this.store.update('users', userId, { password: createPassword(newPassword) });
+    return true;
+  }
+
   sessionFor(token) {
     const payload = verifyToken(token);
     if (!payload) return null;

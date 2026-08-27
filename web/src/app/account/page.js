@@ -7,10 +7,38 @@ import { api, getToken, clearToken } from '../../lib/api';
 export default function AccountPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwOk, setPwOk] = useState('');
+  const [pwBusy, setPwBusy] = useState(false);
+
   useEffect(() => {
     if (!getToken()) { router.replace('/login'); return; }
     api.me().then((d) => setUser(d.user)).catch(() => {});
   }, []);
+
+  async function changePassword(e) {
+    e.preventDefault();
+    setPwError('');
+    setPwOk('');
+    if (newPw !== confirmPw) { setPwError('New passwords do not match'); return; }
+    if (newPw.length < 4) { setPwError('Password must be at least 4 characters'); return; }
+    setPwBusy(true);
+    try {
+      await api.changePassword(currentPw, newPw);
+      setPwOk('Password changed successfully!');
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setPwBusy(false);
+    }
+  }
+
   return (
     <div>
       <Nav />
@@ -24,6 +52,29 @@ export default function AccountPage() {
             <button className="danger" onClick={() => { clearToken(); router.replace('/login'); }}>Log out</button>
           </div>
         )}
+
+        <div className="card" style={{ marginTop: 16 }}>
+          <h2 className="title" style={{ fontSize: 16 }}>Change Password</h2>
+          <form onSubmit={changePassword}>
+            <div className="field">
+              <label>Current Password</label>
+              <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} autoComplete="current-password" required />
+            </div>
+            <div className="field">
+              <label>New Password</label>
+              <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" required />
+            </div>
+            <div className="field">
+              <label>Confirm New Password</label>
+              <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" required />
+            </div>
+            {pwError && <div className="err">{pwError}</div>}
+            {pwOk && <div className="ok">{pwOk}</div>}
+            <button className="primary" type="submit" disabled={pwBusy} style={{ marginTop: 8 }}>
+              {pwBusy ? 'Changing...' : 'Change Password'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

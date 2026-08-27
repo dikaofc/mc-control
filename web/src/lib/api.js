@@ -42,6 +42,7 @@ export const api = {
   login: (username, password) => request('POST', '/api/auth/login', { username, password }, false),
   register: (username, password) => request('POST', '/api/auth/register', { username, password }, false),
   me: () => request('GET', '/api/auth/me'),
+  changePassword: (currentPassword, newPassword) => request('POST', '/api/auth/change-password', { currentPassword, newPassword }),
 
   // projects
   projects: () => request('GET', '/api/projects'),
