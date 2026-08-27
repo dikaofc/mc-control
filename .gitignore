@@ -11,3 +11,9 @@ web/.next/
 web/out/
 manager/data/
 **/.DS_Store
+
+# Temp/debug files
+bm.js
+bm.json
+proj.html
+ssg.js
