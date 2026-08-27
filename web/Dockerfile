@@ -1,24 +1,15 @@
-# Dashboard service: Next.js, served by its own Node server (standalone output).
-FROM node:20-bookworm-slim AS base
+# Dashboard service (standalone two-service mode): build a static export,
+# serve it with nginx. Talks to the manager via NEXT_PUBLIC_MANAGER_URL (build-time).
+FROM node:20-bookworm-slim AS build
 WORKDIR /app
-ENV NODE_ENV=production
-
-# ---- deps ----
-FROM base AS deps
 COPY package.json package-lock.json* ./
 RUN npm install
-
-# ---- build ----
-FROM base AS build
-# NEXT_PUBLIC_MANAGER_URL must be provided at build time (Vercel/Railway env).
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_MANAGER_URL is injected by Railway at build time.
 RUN npm run build
 
-# ---- runtime ----
-FROM base AS runner
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+FROM nginx:alpine
+COPY --from=build /app/out /usr/share/nginx/html
+# SPA fallback so client-side routes (/server/:id) resolve to index.html.
+RUN printf 'server {\n  listen 3000;\n  root /usr/share/nginx/html;\n  location /api { return 404; }\n  location / {\n    try_files $uri $uri/ /index.html;\n  }\n}\n' > /etc/nginx/conf.d/default.conf
 EXPOSE 3000
-CMD ["node", "server.js"]

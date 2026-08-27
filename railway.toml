@@ -1,10 +1,12 @@
-# Railway project config. Deploys two services from one repo:
-#   - manager : Node control plane that spawns real Minecraft servers (needs Java + a volume)
-#   - web     : Next.js dashboard, talks to manager via NEXT_PUBLIC_MANAGER_URL
-[build]
-builder = "dockerfile"
-dockerfilePath = "manager/Dockerfile"
-# (The web service overrides its dockerfilePath below.)
+# Railway project config. Three deploy options from one repo:
+#
+#   A) "manager" + "web"   -> two services (manager spawns MC, web is the dashboard)
+#   B) "combined"          -> one service: manager serves the dashboard itself
+#                               (most efficient for Railway free tier)
+#
+# Deploy what you need. For free hosting, use "combined" (single container).
+
+# ---------- Option A: two services ----------
 
 [[services]]
 name = "manager"
@@ -20,7 +22,6 @@ restartPolicyMaxRetries = 10
   MC_DEFAULT_MEM = "768"
   MC_MAX_MEM = "1024"
 
-  # Persist worlds, backups and the db across restarts.
   [services.volumes]
   "/data" = "/data"
 
@@ -34,6 +35,24 @@ restartPolicyMaxRetries = 10
 
   [services.env]
   PORT = "3000"
-  # Points the dashboard at the manager service. Railway resolves
-  # ${{ services.manager.url }} to the manager's public URL at deploy time.
   NEXT_PUBLIC_MANAGER_URL = "${{ services.manager.url }}"
+
+# ---------- Option B: one combined service ----------
+
+[[services]]
+name = "combined"
+dockerfilePath = "Dockerfile.combined"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+  [services.env]
+  PORT = "8090"
+  MC_SESSION_SECRET = "CHANGE_ME_IN_RAILWAY_DASHBOARD"
+  MC_DEFAULT_MEM = "768"
+  MC_MAX_MEM = "1024"
+  # Dashboard is served by the manager on the same origin (relative API paths).
+
+  [services.volumes]
+  "/data" = "/data"

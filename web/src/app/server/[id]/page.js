@@ -1,5 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+
+// Allow static export: the id is read client-side from the URL, so we don't
+// need server-side params generation.
+export const dynamic = 'force-static';
 import { useParams } from 'next/navigation';
 import Nav from '../../../components/Nav';
 import { api, getToken, consoleSocket } from '../../../lib/api';

@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Produce a single Node server file for container/standalone deploys.
-  output: 'standalone',
+  // Static export: the dashboard is 100% client-side (fetches the manager API),
+  // so it builds to plain HTML/JS — ideal for serving from the manager container.
+  output: 'export',
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   // The dashboard talks to the manager API set via NEXT_PUBLIC_MANAGER_URL.
-  // On Railway set NEXT_PUBLIC_MANAGER_URL to the manager service's URL.
+  // In combined (same-origin) mode leave it empty to use relative paths.
+  images: { unoptimized: true },
 };
 
 module.exports = nextConfig;
+

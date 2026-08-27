@@ -21,8 +21,15 @@ app.use(limiter);
 app.get('/api/health', (req, res) => res.json({ ok: true, uptime: process.uptime(), servers: manager.servers.size }));
 app.use('/api', buildRouter(manager));
 
-// Static dashboard (optional, if web/ is built and copied to manager/public)
-app.use(express.static(config.root + '/public'));
+// Static dashboard (optional, if web/ is built and copied to manager/public).
+// SPA fallback: any non-/api GET that isn't a real file serves index.html so
+// client-side routes like /server/:id work when the dashboard is co-located.
+const publicDir = config.root + '/public';
+app.use(express.static(publicDir));
+app.get(/^(?!\/api\/).*/, (req, res, next) => {
+  if (req.method !== 'GET') return next();
+  res.sendFile(publicDir + '/index.html', (err) => { if (err) next(); });
+});
 
 const server = http.createServer(app);
 attachWebSocket(server, manager);

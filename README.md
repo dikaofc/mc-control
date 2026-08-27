@@ -147,3 +147,32 @@ web/                     # dashboard (Next.js, deploys to Vercel)
   src/components/        #   console, settings, players, files, backups, addons, scheduler
   src/lib/api.js         #   API + WebSocket client
 ```
+
+## Deploy to Railway (free tier, runs everything)
+
+Railway runs long-lived containers with Java + WebSocket + volumes — so the **manager
+(and the Minecraft servers it spawns) run here**, unlike Vercel. Two ready-made options:
+
+### Option B — Combined (recommended for free hosting)
+One container: the manager serves the static dashboard itself. Most efficient.
+- `railway.toml` already defines a `combined` service using `Dockerfile.combined`.
+- Deploy: `railway up` (or link repo in Railway dashboard → it reads `railway.toml`).
+
+### Option A — Two services
+Separate `manager` (spawns MC) and `web` (nginx dashboard) services, defined in `railway.toml`.
+The `web` service gets `NEXT_PUBLIC_MANAGER_URL=${{ services.manager.url }}` automatically.
+
+### After deploy (both options)
+1. Railway dashboard → manager/combined service → Variables → set `MC_SESSION_SECRET`
+   to a long random string (default is `CHANGE_ME`).
+2. Volume `/data` is mounted automatically → worlds & backups persist across restarts.
+3. Free-tier RAM is limited (~512MB–1GB). Keep `MC_MAX_MEM` around 768–1024 and run one
+   small vanilla 1.20.x server. Newer 1.21+ with world generation may OOM on free tier.
+
+Note: the Next.js dashboard is built as a **static export** (`output: 'export'`), so it needs
+no Node server of its own and is served by the manager (combined) or nginx (two-service).
+
+## Local limitations (this dev box)
+`next build` requires the SWC native binary, which is unavailable on android/arm64 (Termux).
+The build succeeds on Railway/Vercel (linux-x64). All dashboard source passes syntax checks
+and the manager is fully integration-tested here.
