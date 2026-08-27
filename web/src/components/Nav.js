@@ -10,14 +10,14 @@ export default function Nav() {
     router.replace('/login');
   }
   return (
-    <div className="nav">
+    <nav className="nav">
       <div className="nav-inner">
         <Link href="/" className="brand">VPS<span>Panel</span></Link>
         <Link href="/">Workspaces</Link>
         <div className="flex1" />
         <Link href="/account">Account</Link>
-        <button onClick={logout} style={{ padding: '4px 10px' }}>Logout</button>
+        <button onClick={logout} style={{ padding: '5px 12px', fontSize: 12 }}>Logout</button>
       </div>
-    </div>
+    </nav>
   );
 }

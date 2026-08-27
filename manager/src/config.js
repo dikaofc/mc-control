@@ -15,6 +15,9 @@ export const config = {
   // Secret used to sign session tokens. Set in production.
   sessionSecret: process.env.MC_SESSION_SECRET || 'dev-insecure-secret-change-me',
   sessionTtlMs: Number(process.env.MC_SESSION_TTL || 7 * 24 * 3600 * 1000),
+  // Self-registration at /api/auth/register. OFF by default so a public deploy
+  // is not an open shell box; admins create users via an admin route / seed.
+  allowRegister: process.env.MC_ALLOW_REGISTER === 'true',
 };
 
 // Ensure directories exist.

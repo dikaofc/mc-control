@@ -1,9 +1,11 @@
 // Express API router for the VPS control panel manager.
 import express from 'express';
+import RateLimit from 'express-rate-limit';
 import { execSync } from 'node:child_process';
 import os from 'node:os';
 import { Manager } from '../core/manager.js';
 import { authMiddleware } from './auth.js';
+import { config } from '../config.js';
 import * as files from '../features/files.js';
 
 export function buildRouter(manager) {
@@ -22,15 +24,25 @@ export function buildRouter(manager) {
     });
   };
 
+  // Brute-force protection on auth endpoints (per IP).
+  const authLimiter = RateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many attempts, slow down.' },
+  });
+
   // --- auth ---------------------------------------------------------------
-  router.post('/auth/register', wrap(async (req) => {
+  router.post('/auth/register', authLimiter, wrap(async (req) => {
+    if (!config.allowRegister) throw new Error('Registration is disabled');
     const { username, password } = req.body;
     if (!username || !password) throw new Error('username and password required');
     const u = manager.registerUser(username, password);
     return { token: manager.issueSession(u), user: { id: u.id, username: u.username, role: u.role } };
   }));
 
-  router.post('/auth/login', wrap(async (req) => {
+  router.post('/auth/login', authLimiter, wrap(async (req) => {
     const { username, password } = req.body;
     const u = manager.authenticate(username, password);
     if (!u) throw new Error('Invalid credentials');

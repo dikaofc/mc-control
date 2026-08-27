@@ -42,7 +42,7 @@ export default function Home() {
     <div>
       <Nav />
       <div className="container">
-        <div className="row between" style={{ marginBottom: 16 }}>
+        <div className="row between" style={{ marginBottom: 20 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 className="title">Workspaces</h1>
             <p className="subtitle">Your Linux environments. Terminal, file manager, run anything.</p>
@@ -52,31 +52,38 @@ export default function Home() {
 
         {error && <div className="err">{error}</div>}
 
-        {loading ? <p className="muted">Loading...</p> :
-          projects.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: 32 }}>
-              <p className="muted" style={{ fontSize: 14, marginBottom: 14 }}>No workspaces yet.</p>
-              <button className="primary" onClick={() => setShowCreate(true)}>+ New Workspace</button>
-            </div>
-          ) : (
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
-              {projects.map((p) => (
-                <div key={p.id} className="card workspace-card">
-                  <div className="row between">
-                    <strong className="truncate" style={{ flex: 1 }}>{p.name}</strong>
-                    <button className="danger" style={{ padding: '3px 8px', flexShrink: 0 }} onClick={() => del(p.id)}>Del</button>
-                  </div>
-                  <p className="muted" style={{ marginTop: 6, fontSize: 12 }}>{p.fileCount} files</p>
-                  <button className="primary" style={{ marginTop: 8, width: '100%' }}
-                    onClick={() => router.push(`/project?id=${p.id}`)}>Open</button>
+        {loading ? (
+          <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+            <p className="muted">Loading workspaces...</p>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: 48 }}>
+            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>&#128187;</div>
+            <p style={{ fontSize: 15, marginBottom: 16, color: 'var(--text-dim)' }}>No workspaces yet</p>
+            <button className="primary" onClick={() => setShowCreate(true)}>+ Create First Workspace</button>
+          </div>
+        ) : (
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            {projects.map((p) => (
+              <div key={p.id} className="card" style={{ transition: 'all 0.25s var(--ease)' }}>
+                <div className="row between" style={{ marginBottom: 10 }}>
+                  <strong className="truncate" style={{ flex: 1, fontSize: 15 }}>{p.name}</strong>
+                  <button className="danger" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => del(p.id)}>Delete</button>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="row" style={{ gap: 8, marginBottom: 12 }}>
+                  <span className="pill"><span className="dot online" /> Active</span>
+                  <span className="tag">{p.fileCount} files</span>
+                </div>
+                <button className="primary" style={{ width: '100%' }}
+                  onClick={() => router.push(`/project?id=${p.id}`)}>Open Terminal</button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {showCreate && (
           <div className="card" style={{ marginTop: 20 }}>
-            <h2 className="title">New Workspace</h2>
+            <h2 className="title" style={{ fontSize: 17 }}>New Workspace</h2>
             <p className="subtitle">Isolated directory with its own terminal.</p>
             <form onSubmit={create}>
               <div className="field">

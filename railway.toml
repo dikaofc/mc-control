@@ -26,6 +26,7 @@ restartPolicyMaxRetries = 10
   MC_SESSION_SECRET = "CHANGE_ME_IN_RAILWAY_DASHBOARD"
   MC_DATA_DIR = "/data"
   MC_PROJECTS_DIR = "/data/projects"
+  MC_ALLOW_REGISTER = "false"
 
   [services.volumes]
   "/data" = "/data"
@@ -57,6 +58,7 @@ restartPolicyMaxRetries = 10
   MC_SESSION_SECRET = "CHANGE_ME_IN_RAILWAY_DASHBOARD"
   MC_DATA_DIR = "/data"
   MC_PROJECTS_DIR = "/data/projects"
+  MC_ALLOW_REGISTER = "false"
   # Dashboard is served by the manager on the same origin (relative API paths).
 
   [services.volumes]

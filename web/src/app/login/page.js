@@ -34,28 +34,34 @@ export default function LoginPage() {
   return (
     <div className="center-screen">
       <div className="card auth-box">
-        <div className="brand" style={{ marginBottom: 16 }}>VPS<span>Panel</span></div>
-        <h2 className="title">Web VPS Terminal</h2>
-        <p className="subtitle">Full Linux environment in your browser — terminal, file manager, run anything.</p>
-        <div className="tabs" style={{ marginBottom: 18 }}>
-          <button className={'tab ' + (mode === 'login' ? 'active' : '')} onClick={() => setMode('login')}>Login</button>
-          <button className={'tab ' + (mode === 'register' ? 'active' : '')} onClick={() => setMode('register')}>Register</button>
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div className="brand" style={{ fontSize: 28, marginBottom: 8, display: 'inline-block' }}>
+            VPS<span>Panel</span>
+          </div>
+          <h2 className="title" style={{ fontSize: 20 }}>Web VPS Terminal</h2>
+          <p className="subtitle" style={{ marginBottom: 0 }}>Full Linux environment in your browser</p>
         </div>
+
+        <div className="tabs" style={{ marginBottom: 20 }}>
+          <button className={'tab ' + (mode === 'login' ? 'active' : '')} onClick={() => setMode('login')} style={{ flex: 1, textAlign: 'center' }}>Login</button>
+          <button className={'tab ' + (mode === 'register' ? 'active' : '')} onClick={() => setMode('register')} style={{ flex: 1, textAlign: 'center' }}>Register</button>
+        </div>
+
         <form onSubmit={submit}>
           <div className="field">
             <label>Username</label>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" />
+            <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" placeholder="Enter username" />
           </div>
           <div className="field">
             <label>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder="Enter password" />
           </div>
           {error && <div className="err">{error}</div>}
-          <button className="primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}
+          <button className="primary" style={{ width: '100%', marginTop: 12, padding: '12px 20px' }} disabled={loading}>
+            {loading ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Create account'}
           </button>
         </form>
-        <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>
+        <p className="muted" style={{ marginTop: 16, fontSize: 11, textAlign: 'center' }}>
           Default: <span className="mono">admin / admin123</span>
         </p>
       </div>

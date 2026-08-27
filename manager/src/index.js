@@ -28,6 +28,12 @@ if (!process.env.MC_SESSION_SECRET || config.sessionSecret === 'dev-insecure-sec
 
 const manager = new Manager();
 
+// Warn loudly (non-fatal) if the seeded admin still uses the default password.
+if (manager.authenticate('admin', 'admin123')) {
+  console.warn('[vps-panel] WARNING: default admin/admin123 credentials are still active.');
+  console.warn('[vps-panel] Change the admin password immediately (Account page or POST /api/auth/change-password).');
+}
+
 const app = express();
 // Open by default (combined deploy is same-origin). In two-service mode, set
 // MC_CORS_ORIGIN to the dashboard URL to restrict cross-origin API access.
