@@ -31,12 +31,16 @@ export async function attachTerminal(conn, manager, user, projectId) {
   }
 
   const cwd = (projectId && workspaceDir(manager, projectId, user.id)) || config.projectsDir;
+  const env = { ...process.env, TERM: 'xterm-256color', HOME: process.env.HOME || '/data', USER: user.username };
+  // Never expose the panel signing secret or Railway creds to the shell.
+  delete env.MC_SESSION_SECRET;
+  for (const k of Object.keys(env)) if (/railway/i.test(k)) delete env[k];
   const term = pty.spawn(shellPath(), [], {
     name: 'xterm-color',
     cols: 80,
     rows: 24,
     cwd,
-    env: { ...process.env, TERM: 'xterm-256color', HOME: process.env.HOME || '/root', USER: user.username },
+    env,
   });
 
   term.onData((data) => {

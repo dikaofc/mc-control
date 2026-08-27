@@ -17,3 +17,10 @@ bm.js
 bm.json
 proj.html
 ssg.js
+
+# Next.js temp files
+*.rsc
+*chunk.js
+*page*.js
+*home*.html
+wsprobe.py
