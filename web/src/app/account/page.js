@@ -23,20 +23,15 @@ export default function AccountPage() {
     e.preventDefault();
     setPwError('');
     setPwOk('');
-    if (newPw !== confirmPw) { setPwError('New passwords do not match'); return; }
-    if (newPw.length < 4) { setPwError('Password must be at least 4 characters'); return; }
+    if (newPw !== confirmPw) { setPwError('Passwords do not match'); return; }
+    if (newPw.length < 4) { setPwError('Min 4 characters'); return; }
     setPwBusy(true);
     try {
       await api.changePassword(currentPw, newPw);
-      setPwOk('Password changed successfully!');
-      setCurrentPw('');
-      setNewPw('');
-      setConfirmPw('');
-    } catch (err) {
-      setPwError(err.message);
-    } finally {
-      setPwBusy(false);
-    }
+      setPwOk('Password changed!');
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    } catch (err) { setPwError(err.message); }
+    finally { setPwBusy(false); }
   }
 
   return (
@@ -48,12 +43,12 @@ export default function AccountPage() {
           <div className="card">
             <div className="field"><label>Username</label><input value={user.username} disabled /></div>
             <div className="field"><label>Role</label><input value={user.role} disabled /></div>
-            <div className="field"><label>User ID</label><input value={user.id} disabled className="mono" style={{ fontSize: 12 }} /></div>
+            <div className="field"><label>User ID</label><input value={user.id} disabled className="mono" style={{ fontSize: 11 }} /></div>
             <button className="danger" onClick={() => { clearToken(); router.replace('/login'); }}>Log out</button>
           </div>
         )}
 
-        <div className="card" style={{ marginTop: 16 }}>
+        <div className="card" style={{ marginTop: 14 }}>
           <h2 className="title" style={{ fontSize: 16 }}>Change Password</h2>
           <form onSubmit={changePassword}>
             <div className="field">

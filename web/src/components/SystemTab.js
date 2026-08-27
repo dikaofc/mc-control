@@ -23,7 +23,7 @@ export default function SystemTab() {
   useEffect(() => { load(); }, []);
   useEffect(() => { const iv = setInterval(load, 5000); return () => clearInterval(iv); }, []);
 
-  if (loading) return <p className="muted">Loading system info...</p>;
+  if (loading) return <div className="card" style={{ textAlign: 'center', padding: 30 }}><p className="muted">Loading system info...</p></div>;
   if (error) return <div className="err">{error}</div>;
   if (!sys) return null;
 
@@ -55,10 +55,10 @@ export default function SystemTab() {
 
       <div className="card">
         <h3 className="title" style={{ fontSize: 15 }}>Memory</h3>
-        <div style={{ marginBottom: 10 }}>
-          <div className="row between" style={{ marginBottom: 4 }}>
-            <span className="muted">Usage</span>
-            <span className="mono">{sys.memory.percent}%</span>
+        <div style={{ marginBottom: 12 }}>
+          <div className="row between" style={{ marginBottom: 6 }}>
+            <span className="muted" style={{ fontSize: 12 }}>Usage</span>
+            <span className="mono" style={{ fontWeight: 700, color: sys.memory.percent > 80 ? 'var(--red)' : 'var(--green)' }}>{sys.memory.percent}%</span>
           </div>
           <div className="progress"><div style={{ width: sys.memory.percent + '%' }} /></div>
         </div>
@@ -73,10 +73,10 @@ export default function SystemTab() {
 
       <div className="card">
         <h3 className="title" style={{ fontSize: 15 }}>Disk</h3>
-        <div style={{ marginBottom: 10 }}>
-          <div className="row between" style={{ marginBottom: 4 }}>
-            <span className="muted">Usage</span>
-            <span className="mono">{sys.disk.total ? Math.round((sys.disk.used / sys.disk.total) * 100) : 0}%</span>
+        <div style={{ marginBottom: 12 }}>
+          <div className="row between" style={{ marginBottom: 6 }}>
+            <span className="muted" style={{ fontSize: 12 }}>Usage</span>
+            <span className="mono" style={{ fontWeight: 700 }}>{sys.disk.total ? Math.round((sys.disk.used / sys.disk.total) * 100) : 0}%</span>
           </div>
           <div className="progress"><div style={{ width: (sys.disk.total ? (sys.disk.used / sys.disk.total) * 100 : 0) + '%' }} /></div>
         </div>
@@ -90,8 +90,8 @@ export default function SystemTab() {
       </div>
 
       <div className="card" style={{ gridColumn: '1 / -1' }}>
-        <h3 className="title" style={{ fontSize: 15 }}>Available Runtimes</h3>
-        <div className="row wrap" style={{ gap: 10 }}>
+        <h3 className="title" style={{ fontSize: 15 }}>Runtimes</h3>
+        <div className="row wrap" style={{ gap: 10, marginTop: 4 }}>
           {sys.runtimes.node && (
             <div className="pill"><span className="dot online" /> Node.js {sys.runtimes.node}</div>
           )}
@@ -101,9 +101,6 @@ export default function SystemTab() {
           <div className="pill"><span className="dot online" /> Bash</div>
           <div className="pill"><span className="dot online" /> Git</div>
         </div>
-        <p className="muted" style={{ marginTop: 10, fontSize: 12 }}>
-          All runtimes pre-installed. Use Terminal for interactive shell, Processes for background commands.
-        </p>
       </div>
     </div>
   );

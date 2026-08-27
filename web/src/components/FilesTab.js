@@ -47,10 +47,7 @@ export default function FilesTab({ id }) {
     const fullPath = path ? path + '/' + name : name;
     const url = `/api/projects/${id}/files/read?path=${encodeURIComponent(fullPath)}`;
     fetch(url, { headers: { Authorization: 'Bearer ' + token } })
-      .then(r => {
-        if (!r.ok) throw new Error('Download failed');
-        return r.json();
-      })
+      .then(r => { if (!r.ok) throw new Error('Download failed'); return r.json(); })
       .then(data => {
         const blob = new Blob([data.content], { type: 'text/plain' });
         const a = document.createElement('a');
@@ -92,15 +89,15 @@ export default function FilesTab({ id }) {
   if (editing) {
     return (
       <div className="card">
-        <div className="row between" style={{ marginBottom: 10 }}>
-          <strong className="truncate">Editing: {editing.name}</strong>
+        <div className="row between" style={{ marginBottom: 12 }}>
+          <strong className="truncate" style={{ flex: 1 }}>Editing: {editing.name}</strong>
           <button onClick={() => setEditing(null)}>Back</button>
         </div>
         <textarea className="mono" rows={window.innerWidth < 600 ? 16 : 24}
-          style={{ width: '100%', fontSize: window.innerWidth < 600 ? 11 : 13 }}
+          style={{ width: '100%', fontSize: window.innerWidth < 600 ? 11 : 13, lineHeight: 1.5 }}
           value={editing.content}
           onChange={(e) => setEditing({ ...editing, content: e.target.value })} />
-        <div className="row-mobile" style={{ marginTop: 10 }}>
+        <div className="row-mobile" style={{ marginTop: 12 }}>
           <button className="primary" onClick={saveFile} disabled={busy}>
             {busy ? 'Saving...' : 'Save'}
           </button>
@@ -114,7 +111,7 @@ export default function FilesTab({ id }) {
     <div className="card">
       <div className="row between file-header">
         <div>
-          <strong>Files</strong>
+          <strong style={{ fontSize: 15 }}>Files</strong>
           <span className="muted"> / {path || 'root'}</span>
         </div>
         <div className="row-mobile">
@@ -125,9 +122,8 @@ export default function FilesTab({ id }) {
       </div>
       {error && <div className="err">{error}</div>}
 
-      {/* Desktop table */}
       <div className="table-responsive">
-        <table className="table file-table">
+        <table className="table">
           <thead><tr><th>Name</th><th className="hide-mobile">Size</th><th className="hide-mobile">Modified</th><th>Actions</th></tr></thead>
           <tbody>
             {items.map((it) => (
@@ -138,17 +134,17 @@ export default function FilesTab({ id }) {
                   </a>
                 </td>
                 <td className="muted hide-mobile">{it.isDir ? '-' : formatSize(it.size)}</td>
-                <td className="muted hide-mobile" style={{ fontSize: 12 }}>{formatDate(it.mtime)}</td>
+                <td className="muted hide-mobile" style={{ fontSize: 11 }}>{formatDate(it.mtime)}</td>
                 <td>
                   <div className="row-mobile" style={{ gap: 4 }}>
-                    {!it.isDir && <button onClick={() => openFile(it.name)} style={{ padding: '3px 8px' }}>Edit</button>}
-                    {!it.isDir && <button onClick={() => downloadFile(it.name)} style={{ padding: '3px 8px' }}>DL</button>}
-                    <button className="danger" onClick={() => del(it.name)} style={{ padding: '3px 8px' }}>Del</button>
+                    {!it.isDir && <button onClick={() => openFile(it.name)} style={{ padding: '4px 10px', fontSize: 12 }}>Edit</button>}
+                    {!it.isDir && <button onClick={() => downloadFile(it.name)} style={{ padding: '4px 10px', fontSize: 12 }}>DL</button>}
+                    <button className="danger" onClick={() => del(it.name)} style={{ padding: '4px 10px', fontSize: 12 }}>Del</button>
                   </div>
                 </td>
               </tr>
             ))}
-            {items.length === 0 && <tr><td className="muted" colSpan={4}>Empty folder</td></tr>}
+            {items.length === 0 && <tr><td className="muted" colSpan={4} style={{ textAlign: 'center', padding: 24 }}>Empty folder</td></tr>}
           </tbody>
         </table>
       </div>
