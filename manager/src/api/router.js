@@ -141,12 +141,13 @@ export function buildRouter(manager) {
   // Railway exposes only one port. To "open" an app running inside a workspace
   // (e.g. `node app.js` on :3000), we proxy /api/projects/:id/proxy/<port> to
   // localhost:<port> inside the container. No extra infra, no third-party tunnel.
-  const exposed = new Map(); // projectId -> Set<port>
+  // Persisted on the project record so it survives container restarts.
+  const exposedPorts = (id) => new Set(manager.getExposedPorts(id));
 
   router.get('/projects/:id/ports', auth, wrap(async (req) => {
     const p = manager.getProject(req.params.id, req.user.id);
     if (!p) throw new Error('Project not found');
-    return [...(exposed.get(req.params.id) || [])].sort((a, b) => a - b);
+    return [...exposedPorts(req.params.id)];
   }));
 
   router.post('/projects/:id/ports', auth, wrap(async (req) => {
@@ -154,23 +155,26 @@ export function buildRouter(manager) {
     if (!p) throw new Error('Project not found');
     const port = Number(req.body.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('port must be 1-65535');
-    if (!exposed.has(req.params.id)) exposed.set(req.params.id, new Set());
-    exposed.get(req.params.id).add(port);
-    return [...exposed.get(req.params.id)];
+    const set = exposedPorts(req.params.id);
+    set.add(port);
+    manager.setExposedPorts(req.params.id, [...set]);
+    return [...set];
   }));
 
   router.delete('/projects/:id/ports/:port', auth, wrap(async (req) => {
     const p = manager.getProject(req.params.id, req.user.id);
     if (!p) throw new Error('Project not found');
     const port = Number(req.params.port);
-    exposed.get(req.params.id)?.delete(port);
-    return [...(exposed.get(req.params.id) || [])];
+    const set = exposedPorts(req.params.id);
+    set.delete(port);
+    manager.setExposedPorts(req.params.id, [...set]);
+    return [...set];
   }));
 
   // Proxy to a locally-listening port inside the workspace's container.
   router.all('/projects/:id/proxy/:port', auth, (req, res) => {
     const port = Number(req.params.port);
-    if (!exposed.get(req.params.id)?.has(port)) {
+    if (!exposedPorts(req.params.id).has(port)) {
       return res.status(404).json({ error: 'Port not exposed' });
     }
     const target = http.request(

@@ -107,6 +107,15 @@ export class Manager {
   _appUid() { return Number(process.env.MC_RUN_UID || 1000); }
   _appGid() { return Number(process.env.MC_RUN_GID || 1000); }
 
+  // Persisted exposed ports for the in-manager reverse proxy.
+  getExposedPorts(id) {
+    const rec = this.store.find('projects', id);
+    return Array.isArray(rec && rec.exposedPorts) ? rec.exposedPorts : [];
+  }
+  setExposedPorts(id, ports) {
+    this.store.update('projects', id, { exposedPorts: [...new Set(ports)].sort((a, b) => a - b) });
+  }
+
   renameProject(id, userId, name) {
     const rec = this.store.find('projects', id);
     if (!rec) throw new Error('Project not found');

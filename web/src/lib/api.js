@@ -87,24 +87,72 @@ export const api = {
   system: () => request('GET', '/api/system'),
 };
 
-// Terminal (PTY) WebSocket — uses short-lived WS token, not session token.
-export async function terminalSocket(projectId, onMessage) {
-  const wsToken = await getWsToken();
-  const token = wsToken || getToken(); // fallback to session token if exchange fails
-  const ws = new WebSocket(`${wsHost()}/ws?mode=terminal&projectId=${projectId || ''}&token=${token}`);
-  ws.onmessage = (e) => {
-    try { onMessage(JSON.parse(e.data)); } catch {}
+// Open a WebSocket that auto-reconnects on transient drops (no manual refresh).
+// Returns a small wrapper exposing send/close/readyState and settable
+// onopen/onclose/onerror hooks, so callers use it like a real WebSocket.
+async function openReconnectingSocket(buildQuery, onMessage) {
+  const wrapper = {
+    readyState: 0,
+    onopen: null,
+    onclose: null,
+    onerror: null,
+    _ws: null,
+    _closed: false,
+    _retry: 0,
+    send(data) {
+      if (this._ws && this._ws.readyState === 1) this._ws.send(data);
+    },
+    close() {
+      this._closed = true;
+      if (this._ws) this._ws.close();
+    },
   };
-  return ws;
+
+  async function connect() {
+    const wsToken = await getWsToken();
+    const token = wsToken || getToken();
+    const ws = new WebSocket(`${wsHost()}/ws?${buildQuery()}&token=${token}`);
+    wrapper._ws = ws;
+    ws.onmessage = (e) => {
+      try { onMessage(JSON.parse(e.data)); } catch {}
+    };
+    ws.onopen = () => {
+      wrapper.readyState = 1;
+      wrapper._retry = 0;
+      if (wrapper.onopen) wrapper.onopen();
+    };
+    ws.onerror = () => {
+      if (wrapper.onerror) wrapper.onerror();
+    };
+    ws.onclose = () => {
+      wrapper.readyState = 3;
+      if (wrapper._closed) {
+        if (wrapper.onclose) wrapper.onclose();
+        return;
+      }
+      // Transient drop: back off then retry (max ~10s) without involving the user.
+      const delay = Math.min(1000 * 2 ** wrapper._retry, 10000);
+      wrapper._retry += 1;
+      setTimeout(connect, delay);
+    };
+  }
+
+  connect();
+  return wrapper;
+}
+
+// Terminal (PTY) WebSocket — uses short-lived WS token, not session token.
+export function terminalSocket(projectId, onMessage) {
+  return openReconnectingSocket(
+    () => `mode=terminal&projectId=${projectId || ''}`,
+    onMessage
+  );
 }
 
 // Process-output WebSocket.
-export async function processSocket(projectId, onMessage) {
-  const wsToken = await getWsToken();
-  const token = wsToken || getToken();
-  const ws = new WebSocket(`${wsHost()}/ws?projectId=${projectId}&token=${token}`);
-  ws.onmessage = (e) => {
-    try { onMessage(JSON.parse(e.data)); } catch {}
-  };
-  return ws;
+export function processSocket(projectId, onMessage) {
+  return openReconnectingSocket(
+    () => `projectId=${projectId}`,
+    onMessage
+  );
 }
