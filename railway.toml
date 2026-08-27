@@ -6,6 +6,11 @@
 #
 # Deploy what you need. For free hosting, use "combined" (single container).
 
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+# Railway uses this root Dockerfile (the combined service) by default.
+
 # ---------- Option A: two services ----------
 
 [[services]]
@@ -41,7 +46,7 @@ restartPolicyMaxRetries = 10
 
 [[services]]
 name = "combined"
-dockerfilePath = "Dockerfile.combined"
+dockerfilePath = "Dockerfile"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
