@@ -1,19 +1,15 @@
 'use client';
-import { useEffect, useState } from 'react';
-
-// Allow static export: the id is read client-side from the URL, so we don't
-// need server-side params generation.
-export const dynamic = 'force-static';
-import { useParams } from 'next/navigation';
-import Nav from '../../../components/Nav';
-import { api, getToken, consoleSocket } from '../../../lib/api';
-import ConsoleTab from '../../../components/ConsoleTab';
-import SettingsTab from '../../../components/SettingsTab';
-import PlayersTab from '../../../components/PlayersTab';
-import FilesTab from '../../../components/FilesTab';
-import BackupsTab from '../../../components/BackupsTab';
-import AddonsTab from '../../../components/AddonsTab';
-import ScheduleTab from '../../../components/ScheduleTab';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Nav from '../../components/Nav';
+import { api, getToken } from '../../lib/api';
+import ConsoleTab from '../../components/ConsoleTab';
+import SettingsTab from '../../components/SettingsTab';
+import PlayersTab from '../../components/PlayersTab';
+import FilesTab from '../../components/FilesTab';
+import BackupsTab from '../../components/BackupsTab';
+import AddonsTab from '../../components/AddonsTab';
+import ScheduleTab from '../../components/ScheduleTab';
 
 const TABS = [
   { id: 'console', label: 'Console' },
@@ -25,8 +21,9 @@ const TABS = [
   { id: 'schedule', label: 'Scheduler' },
 ];
 
-export default function ServerPage() {
-  const { id } = useParams();
+function ServerPage() {
+  const params = useSearchParams();
+  const id = params.get('id');
   const [server, setServer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('console');
@@ -42,6 +39,7 @@ export default function ServerPage() {
 
   useEffect(() => {
     if (!getToken()) { window.location.href = '/login'; return; }
+    if (!id) { setLoading(false); setError('No server id in URL.'); return; }
     load();
     const t = setInterval(load, 4000);
     return () => clearInterval(t);
@@ -51,6 +49,7 @@ export default function ServerPage() {
   async function stop() { try { await api.stop(id); load(); } catch (e) { setError(e.message); } }
   async function restart() { try { await api.restart(id); load(); } catch (e) { setError(e.message); } }
 
+  if (!id) return <div className="container muted" style={{ paddingTop: 40 }}>No server selected.</div>;
   if (loading) return <div className="container muted" style={{ paddingTop: 40 }}>Loading…</div>;
   if (error && !server) return <div className="container"><div className="err">{error}</div></div>;
   if (!server) return <div className="container muted">Server not found.</div>;
@@ -155,5 +154,14 @@ function InstallBox({ id, current, onDone }) {
       <button className="primary" onClick={install} disabled={busy}>{busy ? 'Installing…' : 'Install'}</button>
       {msg && <span className="muted">{msg}</span>}
     </div>
+  );
+}
+
+// useSearchParams requires a Suspense boundary for static export.
+export default function ServerPageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="container muted" style={{ paddingTop: 40 }}>Loading…</div>}>
+      <ServerPage />
+    </Suspense>
   );
 }

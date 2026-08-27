@@ -77,7 +77,7 @@ export default function Home() {
           ) : (
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
               {servers.map((s) => (
-                <div key={s.id} className="card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/server/${s.id}`)}>
+                <div key={s.id} className="card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/server?id=${s.id}`)}>
                   <div className="row between">
                     <strong>{s.name}</strong>
                     <span className={'pill'}><span className={'dot ' + s.status} />{s.status}</span>
