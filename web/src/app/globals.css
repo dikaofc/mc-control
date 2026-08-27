@@ -322,14 +322,14 @@ label { display: block; margin-bottom: 6px; color: var(--text-dim); font-size: 1
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
 }
 .terminal-bar {
-  background: rgba(16, 20, 30, 0.9);
+  background: rgba(16, 20, 30, 0.92);
   padding: 8px 14px;
   border-bottom: 1px solid var(--border-glass);
   display: flex;
   align-items: center;
   gap: 10px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .terminal-dots { display: flex; gap: 7px; }
 .tdot {
@@ -341,12 +341,12 @@ label { display: block; margin-bottom: 6px; color: var(--text-dim); font-size: 1
 .tdot:hover { transform: scale(1.2); }
 .terminal-title { color: var(--text-dim); font-size: 12px; font-weight: 500; }
 .terminal-body {
-  width: 100%; height: 70vh;
+  width: 100%; height: 55vh;
   background: rgba(5, 7, 12, 0.95);
-  min-height: 300px;
+  min-height: 200px;
 }
 
-/* Fullscreen mode (button toggles .terminal-full on .terminal-wrap). */
+/* Fullscreen */
 .terminal-full {
   position: fixed;
   inset: 0;
@@ -358,52 +358,130 @@ label { display: block; margin-bottom: 6px; color: var(--text-dim); font-size: 1
   background: rgba(5, 7, 12, 0.98);
 }
 .terminal-full .terminal-body { flex: 1; height: auto; min-height: 0; }
+.terminal-full .term-keys { flex-shrink: 0; }
 
 .term-fs-btn {
   margin-left: auto;
   font-size: 11px;
-  padding: 3px 10px;
-  background: rgba(68, 138, 255, 0.15);
-  color: var(--accent, #448aff);
-  border: 1px solid rgba(68, 138, 255, 0.4);
+  padding: 4px 12px;
+  background: rgba(68, 138, 255, 0.12);
+  color: #448aff;
+  border: 1px solid rgba(68, 138, 255, 0.3);
   border-radius: 6px;
   cursor: pointer;
 }
-.term-fs-btn:hover { background: rgba(68, 138, 255, 0.28); }
+.term-fs-btn:hover { background: rgba(68, 138, 255, 0.25); }
 
-/* Termux-style touch key bar. */
+/* --- Termux-style keyboard --- */
 .term-keys {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 8px;
-  background: rgba(16, 20, 30, 0.92);
+  background: rgba(12, 15, 22, 0.95);
   border-top: 1px solid var(--border-glass);
-  -webkit-overflow-scrolling: touch;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
+.term-key-row {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.term-key-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex-wrap: nowrap;
+  padding-bottom: 2px;
+}
+.term-key-spacer { flex: 1; }
+
 .term-key {
   flex: 0 0 auto;
-  min-width: 34px;
-  padding: 7px 9px;
-  font-size: 12px;
+  min-width: 32px;
+  padding: 8px 6px;
+  font-size: 11px;
   font-family: ui-monospace, monospace;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text, #e8ecf4);
-  border: 1px solid var(--border-glass);
-  border-radius: 6px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
+  transition: background 0.1s;
+  text-align: center;
+  line-height: 1;
 }
-.term-key:active, .term-key.active { background: rgba(68, 138, 255, 0.32); border-color: var(--accent, #448aff); }
-.term-key.ctrl-combo { color: #ffd740; }
-.term-key-sep { flex-basis: 100%; height: 0; }
+.term-key:active, .term-key.active {
+  background: rgba(68, 138, 255, 0.3);
+  border-color: rgba(68, 138, 255, 0.5);
+  box-shadow: 0 0 8px rgba(68, 138, 255, 0.15);
+}
+
+/* Modifiers */
+.mod-key {
+  min-width: 42px;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.mod-key.active {
+  background: rgba(255, 215, 64, 0.25);
+  border-color: rgba(255, 215, 64, 0.5);
+  color: #ffd740;
+  box-shadow: 0 0 8px rgba(255, 215, 64, 0.15);
+}
+
+/* Ctrl combos */
+.ctrl-combo {
+  color: #ffd740;
+  background: rgba(255, 215, 64, 0.08);
+  border-color: rgba(255, 215, 64, 0.15);
+  min-width: 36px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.ctrl-combo:active {
+  background: rgba(255, 215, 64, 0.3);
+  border-color: rgba(255, 215, 64, 0.5);
+}
+
+/* Nav keys */
+.nav-key {
+  min-width: 38px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Edit keys */
+.edit-key {
+  min-width: 38px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Symbol keys */
+.sym-key {
+  min-width: 28px;
+  padding: 7px 5px;
+  font-size: 12px;
+}
 
 @media (max-width: 600px) {
-  .term-key { min-width: 30px; padding: 9px 8px; font-size: 11px; }
-  .term-keys { overflow-x: auto; flex-wrap: nowrap; }
-  .term-key-sep { flex-basis: auto; width: 1px; height: auto; background: var(--border-glass); }
+  .terminal-body { height: 45vh; min-height: 160px; }
+  .term-key { min-width: 28px; padding: 7px 5px; font-size: 10px; }
+  .mod-key { min-width: 38px; font-size: 9px; }
+  .ctrl-combo { min-width: 32px; font-size: 9px; }
+  .nav-key, .edit-key { min-width: 34px; }
+  .sym-key { min-width: 26px; padding: 6px 4px; font-size: 11px; }
+  .term-keys { padding: 4px 3px; gap: 3px; }
+  .term-key-row { gap: 2px; }
+}
+
+@media (max-width: 380px) {
+  .terminal-body { height: 40vh; min-height: 140px; }
+  .term-key { min-width: 24px; padding: 6px 4px; font-size: 9px; }
+  .mod-key { min-width: 34px; }
+  .ctrl-combo { min-width: 28px; }
 }
 
 /* --- Pills --- */

@@ -7,6 +7,17 @@ import { Manager } from './manager.js';
 import { config } from '../config.js';
 import { uid } from '../util/store.js';
 
+// Remove panel/Railway secrets from the environment passed to user processes.
+function sanitizeEnv(env) {
+  const out = {};
+  for (const [k, v] of Object.entries(env)) {
+    if (/railway/i.test(k)) continue;        // strip any Railway-injected var
+    if (k.toUpperCase() === 'MC_SESSION_SECRET') continue; // never leak signing secret
+    out[k] = v;
+  }
+  return out;
+}
+
 export class ProcessManager {
   constructor(manager) {
     this.manager = manager;
@@ -38,9 +49,16 @@ export class ProcessManager {
     if (running >= this.maxPerUser) throw new Error(`process limit reached (max ${this.maxPerUser})`);
     const cwd = this.workspaceDir(projectId, userId);
     const id = uid('proc');
-    const child = spawn('/bin/sh', ['-c', cmd], {
+    // Drop Railway/panel secrets from the child env so a process cannot read
+    // MC_SESSION_SECRET or Railway creds via `env` (was a proven root-RCE step).
+    const childEnv = sanitizeEnv({ ...process.env, HOME: process.env.HOME || '/data' });
+    // Run as an unprivileged user when available (see Dockerfile: appuser).
+    const runAs = process.env.MC_RUN_USER || 'appuser';
+    const useUnpriv = !opts.asRoot;
+    const child = spawn(useUnpriv ? 'runuser' : '/bin/sh',
+      useUnpriv ? ['-u', runAs, '--', '/bin/sh', '-c', cmd] : ['-c', cmd], {
       cwd,
-      env: { ...process.env, HOME: process.env.HOME || '/root' },
+      env: childEnv,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     const rec = {
