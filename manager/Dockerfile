@@ -2,13 +2,15 @@
 FROM node:20-bookworm-slim
 
 # Install a JRE (Java 21) so modern Minecraft (>=1.20.5) can run.
-# Debian bookworm has no openjdk-21 in main, so we use bookworm-backports
-# (same official Debian mirror). Java 21 also runs older Java 17 MC jars.
+# Debian bookworm has no openjdk-21 in main and backports lacks it too, so we
+# use Eclipse Temurin 21 from Adoptium's apt repo (proven reachable in build).
+# Java 21 also runs older Java 17 MC jars.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates unzip tar \
-    && echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends -t bookworm-backports openjdk-21-jre-headless \
+        ca-certificates curl gnupg unzip tar \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" > /etc/apt/sources.list.d/adoptium.list \
+    && apt-get update && apt-get install -y --no-install-recommends temurin-21-jre \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
