@@ -1,19 +1,19 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, setToken, getToken } from '../../lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState('login');
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (typeof window !== 'undefined' && getToken()) {
-    router.replace('/');
-  }
+  useEffect(() => {
+    if (getToken()) router.replace('/');
+  }, []);
 
   async function submit(e) {
     e.preventDefault();
@@ -44,11 +44,11 @@ export default function LoginPage() {
         <form onSubmit={submit}>
           <div className="field">
             <label>Username</label>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
+            <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus autoComplete="username" />
           </div>
           <div className="field">
             <label>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
           </div>
           {error && <div className="err">{error}</div>}
           <button className="primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>

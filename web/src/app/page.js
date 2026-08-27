@@ -42,48 +42,50 @@ export default function Home() {
     <div>
       <Nav />
       <div className="container">
-        <div className="row between" style={{ marginBottom: 18 }}>
-          <div>
+        <div className="row between" style={{ marginBottom: 16 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <h1 className="title">Workspaces</h1>
-            <p className="subtitle">Your Linux environments. Each workspace has a terminal, file manager, and process runner.</p>
+            <p className="subtitle">Your Linux environments. Terminal, file manager, run anything.</p>
           </div>
-          <button className="primary" onClick={() => setShowCreate(true)}>+ New Workspace</button>
+          <button className="primary" onClick={() => setShowCreate(true)} style={{ flexShrink: 0 }}>+ New</button>
         </div>
 
         {error && <div className="err">{error}</div>}
 
-        {loading ? <p className="muted">Loading…</p> :
+        {loading ? <p className="muted">Loading...</p> :
           projects.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-              <p className="muted" style={{ fontSize: 16, marginBottom: 16 }}>No workspaces yet. Create your first one to get started.</p>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button className="primary" onClick={() => setShowCreate(true)}>+ New Workspace</button>
-              </div>
+            <div className="card" style={{ textAlign: 'center', padding: 32 }}>
+              <p className="muted" style={{ fontSize: 14, marginBottom: 14 }}>No workspaces yet.</p>
+              <button className="primary" onClick={() => setShowCreate(true)}>+ New Workspace</button>
             </div>
           ) : (
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
               {projects.map((p) => (
-                <div key={p.id} className="card">
+                <div key={p.id} className="card workspace-card">
                   <div className="row between">
-                    <strong>{p.name}</strong>
-                    <button className="danger" style={{ padding: '3px 8px' }} onClick={() => del(p.id)}>Delete</button>
+                    <strong className="truncate" style={{ flex: 1 }}>{p.name}</strong>
+                    <button className="danger" style={{ padding: '3px 8px', flexShrink: 0 }} onClick={() => del(p.id)}>Del</button>
                   </div>
-                  <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>{p.fileCount} files</p>
-                  <button className="primary" style={{ marginTop: 10, width: '100%' }}
-                    onClick={() => router.push(`/project?id=${p.id}`)}>Open Terminal →</button>
+                  <p className="muted" style={{ marginTop: 6, fontSize: 12 }}>{p.fileCount} files</p>
+                  <button className="primary" style={{ marginTop: 8, width: '100%' }}
+                    onClick={() => router.push(`/project?id=${p.id}`)}>Open</button>
                 </div>
               ))}
             </div>
           )}
 
         {showCreate && (
-          <div className="card" style={{ marginTop: 24 }}>
+          <div className="card" style={{ marginTop: 20 }}>
             <h2 className="title">New Workspace</h2>
-            <p className="subtitle">Each workspace is an isolated directory with its own terminal session.</p>
-            <form onSubmit={create} className="row wrap" style={{ gap: 10 }}>
-              <input className="flex1" value={name} onChange={(e) => setName(e.target.value)} placeholder="Workspace name (e.g. my-app)" required />
-              <button type="submit" className="primary">Create</button>
-              <button type="button" onClick={() => setShowCreate(false)}>Cancel</button>
+            <p className="subtitle">Isolated directory with its own terminal.</p>
+            <form onSubmit={create}>
+              <div className="field">
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Workspace name (e.g. my-app)" autoFocus required />
+              </div>
+              <div className="row-mobile">
+                <button type="submit" className="primary">Create</button>
+                <button type="button" onClick={() => setShowCreate(false)}>Cancel</button>
+              </div>
             </form>
           </div>
         )}

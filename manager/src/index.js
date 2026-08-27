@@ -8,10 +8,12 @@ import { buildRouter } from './api/router.js';
 import { attachWebSocket } from './api/ws.js';
 import { config } from './config.js';
 
-// Warn (don't crash) if session secret is the insecure default.
+// Refuse to start with the insecure default secret — session tokens would be
+// forgeable by anyone who knows the (public) default.
 if (!process.env.MC_SESSION_SECRET || config.sessionSecret === 'dev-insecure-secret-change-me') {
-  console.warn('[vps-panel] WARNING: MC_SESSION_SECRET is not set. Using insecure default for development.');
-  console.warn('[vps-panel] Set a long random secret (e.g. `openssl rand -hex 32`) before production use.');
+  console.error('[vps-panel] FATAL: MC_SESSION_SECRET is not set or is the insecure default.');
+  console.error('[vps-panel] Set a long random secret (e.g. `openssl rand -hex 32`) in your environment before starting.');
+  process.exit(1);
 }
 
 const manager = new Manager();

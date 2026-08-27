@@ -42,8 +42,8 @@ COPY --from=web-build /app/web/out ./public
 ENV PORT=8090
 ENV MC_DATA_DIR=/data
 ENV MC_PROJECTS_DIR=/data/projects
-# Set a strong secret in Railway (Variables) — boot fails if left at default.
-ENV MC_SESSION_SECRET=change-me-in-railway
+# MC_SESSION_SECRET must be set in Railway Variables (a long random string).
+# If it is missing or left at the default, the manager refuses to start.
 
 EXPOSE $PORT
 STOPSIGNAL SIGTERM

@@ -5,8 +5,8 @@ import { config } from '../config.js';
 import { Manager } from '../core/manager.js';
 
 function serverPath(manager, serverId, userId, rel = '') {
-  const rec = manager.store.find('servers', serverId);
-  if (!rec) throw new Error('Server not found');
+  const rec = manager.store.find('projects', serverId);
+  if (!rec) throw new Error('Workspace not found');
   if (rec.ownerId !== userId && !manager._isAdmin(userId)) throw new Error('Forbidden');
   const base = path.join(config.projectsDir, serverId);
   const target = path.resolve(base, rel || '.'); // prevent traversal
@@ -58,7 +58,7 @@ export function createPath(manager, serverId, userId, rel, isDir = false) {
 
 export function deletePath(manager, serverId, userId, rel) {
   const { target } = serverPath(manager, serverId, userId, rel);
-  if (target === path.join(config.projectsDir, serverId)) throw new Error('Cannot delete server root');
+  if (target === path.join(config.projectsDir, serverId)) throw new Error('Cannot delete workspace root');
   if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true });
   return { ok: true };
 }
@@ -66,6 +66,11 @@ export function deletePath(manager, serverId, userId, rel) {
 export function renamePath(manager, serverId, userId, from, to) {
   const a = serverPath(manager, serverId, userId, from);
   const b = serverPath(manager, serverId, userId, to);
+  // Prevent renaming outside workspace
+  const base = path.join(config.projectsDir, serverId);
+  if (!b.target.startsWith(base + path.sep) && b.target !== base) {
+    throw new Error('Path escapes workspace directory');
+  }
   fs.renameSync(a.target, b.target);
   return { ok: true };
 }

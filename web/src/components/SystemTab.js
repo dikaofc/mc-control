@@ -23,41 +23,38 @@ export default function SystemTab() {
   useEffect(() => { load(); }, []);
   useEffect(() => { const iv = setInterval(load, 5000); return () => clearInterval(iv); }, []);
 
-  if (loading) return <p className="muted">Loading system info…</p>;
+  if (loading) return <p className="muted">Loading system info...</p>;
   if (error) return <div className="err">{error}</div>;
   if (!sys) return null;
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-      {/* OS Info */}
+    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
       <div className="card">
-        <h3 className="title" style={{ fontSize: 15 }}>🖥️ System</h3>
+        <h3 className="title" style={{ fontSize: 15 }}>System</h3>
         <table className="table">
           <tbody>
             <tr><td className="muted">Hostname</td><td className="mono">{sys.hostname}</td></tr>
             <tr><td className="muted">Platform</td><td className="mono">{sys.platform} {sys.arch}</td></tr>
-            <tr><td className="muted">OS</td><td className="mono" style={{ fontSize: 12 }}>{sys.osInfo}</td></tr>
+            <tr><td className="muted">OS</td><td className="mono" style={{ fontSize: 11 }}>{sys.osInfo}</td></tr>
             <tr><td className="muted">Uptime</td><td className="mono">{sys.uptime}</td></tr>
           </tbody>
         </table>
       </div>
 
-      {/* CPU */}
       <div className="card">
-        <h3 className="title" style={{ fontSize: 15 }}>⚡ CPU</h3>
+        <h3 className="title" style={{ fontSize: 15 }}>CPU</h3>
         <table className="table">
           <tbody>
-            <tr><td className="muted">Model</td><td className="mono" style={{ fontSize: 12 }}>{sys.cpu.model}</td></tr>
+            <tr><td className="muted">Model</td><td className="mono" style={{ fontSize: 11 }}>{sys.cpu.model}</td></tr>
             <tr><td className="muted">Cores</td><td className="mono">{sys.cpu.cores}</td></tr>
             <tr><td className="muted">Speed</td><td className="mono">{sys.cpu.speed} MHz</td></tr>
-            <tr><td className="muted">Load Avg</td><td className="mono">{sys.loadAvg?.map(l => l.toFixed(2)).join(' · ')}</td></tr>
+            <tr><td className="muted">Load</td><td className="mono">{sys.loadAvg?.map(l => l.toFixed(2)).join(' / ')}</td></tr>
           </tbody>
         </table>
       </div>
 
-      {/* Memory */}
       <div className="card">
-        <h3 className="title" style={{ fontSize: 15 }}>🧠 Memory</h3>
+        <h3 className="title" style={{ fontSize: 15 }}>Memory</h3>
         <div style={{ marginBottom: 10 }}>
           <div className="row between" style={{ marginBottom: 4 }}>
             <span className="muted">Usage</span>
@@ -74,9 +71,8 @@ export default function SystemTab() {
         </table>
       </div>
 
-      {/* Disk */}
       <div className="card">
-        <h3 className="title" style={{ fontSize: 15 }}>💾 Disk</h3>
+        <h3 className="title" style={{ fontSize: 15 }}>Disk</h3>
         <div style={{ marginBottom: 10 }}>
           <div className="row between" style={{ marginBottom: 4 }}>
             <span className="muted">Usage</span>
@@ -93,10 +89,9 @@ export default function SystemTab() {
         </table>
       </div>
 
-      {/* Runtimes */}
-      <div className="card" style={{ gridColumn: 'span 2' }}>
-        <h3 className="title" style={{ fontSize: 15 }}>🔧 Available Runtimes</h3>
-        <div className="row wrap" style={{ gap: 12 }}>
+      <div className="card" style={{ gridColumn: '1 / -1' }}>
+        <h3 className="title" style={{ fontSize: 15 }}>Available Runtimes</h3>
+        <div className="row wrap" style={{ gap: 10 }}>
           {sys.runtimes.node && (
             <div className="pill"><span className="dot online" /> Node.js {sys.runtimes.node}</div>
           )}
@@ -107,7 +102,7 @@ export default function SystemTab() {
           <div className="pill"><span className="dot online" /> Git</div>
         </div>
         <p className="muted" style={{ marginTop: 10, fontSize: 12 }}>
-          All runtimes are pre-installed. Use the Terminal tab to interact directly, or the Process tab to run commands in the background.
+          All runtimes pre-installed. Use Terminal for interactive shell, Processes for background commands.
         </p>
       </div>
     </div>

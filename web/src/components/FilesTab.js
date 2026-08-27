@@ -44,16 +44,21 @@ export default function FilesTab({ id }) {
 
   function downloadFile(name) {
     const token = localStorage.getItem('vps_token');
-    const url = `/api/projects/${id}/files/read?path=${encodeURIComponent(path ? path + '/' + name : name)}`;
-    // Use fetch + blob for download
+    const fullPath = path ? path + '/' + name : name;
+    const url = `/api/projects/${id}/files/read?path=${encodeURIComponent(fullPath)}`;
     fetch(url, { headers: { Authorization: 'Bearer ' + token } })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Download failed');
+        return r.json();
+      })
       .then(data => {
         const blob = new Blob([data.content], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = name;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
       })
       .catch(e => setError(e.message));
@@ -88,14 +93,16 @@ export default function FilesTab({ id }) {
     return (
       <div className="card">
         <div className="row between" style={{ marginBottom: 10 }}>
-          <strong>✏️ Editing: {editing.name}</strong>
-          <button onClick={() => setEditing(null)}>← Back</button>
+          <strong className="truncate">Editing: {editing.name}</strong>
+          <button onClick={() => setEditing(null)}>Back</button>
         </div>
-        <textarea className="mono" rows={24} style={{ width: '100%' }} value={editing.content}
+        <textarea className="mono" rows={window.innerWidth < 600 ? 16 : 24}
+          style={{ width: '100%', fontSize: window.innerWidth < 600 ? 11 : 13 }}
+          value={editing.content}
           onChange={(e) => setEditing({ ...editing, content: e.target.value })} />
-        <div className="row" style={{ marginTop: 10 }}>
+        <div className="row-mobile" style={{ marginTop: 10 }}>
           <button className="primary" onClick={saveFile} disabled={busy}>
-            {busy ? 'Saving…' : '💾 Save'}
+            {busy ? 'Saving...' : 'Save'}
           </button>
           <button onClick={() => setEditing(null)}>Cancel</button>
         </div>
@@ -105,45 +112,52 @@ export default function FilesTab({ id }) {
 
   return (
     <div className="card">
-      <div className="row between" style={{ marginBottom: 10 }}>
+      <div className="row between file-header">
         <div>
-          <strong>📁 Files</strong>
+          <strong>Files</strong>
           <span className="muted"> / {path || 'root'}</span>
         </div>
-        <div className="row">
-          {path && <button onClick={() => { const up = path.split('/').slice(0, -1).join('/'); load(up); }}>↑ Up</button>}
-          <button onClick={() => fileInputRef.current?.click()}>📤 Upload</button>
+        <div className="row-mobile">
+          {path && <button onClick={() => { const up = path.split('/').slice(0, -1).join('/'); load(up); }}>Up</button>}
+          <button onClick={() => fileInputRef.current?.click()}>Upload</button>
           <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleUpload} />
         </div>
       </div>
       {error && <div className="err">{error}</div>}
-      <table className="table">
-        <thead><tr><th>Name</th><th>Size</th><th>Modified</th><th style={{ width: 200 }}>Actions</th></tr></thead>
-        <tbody>
-          {items.map((it) => (
-            <tr key={it.path}>
-              <td>
-                <a onClick={() => it.isDir ? openDir(it.name) : openFile(it.name)} style={{ cursor: 'pointer' }}>
-                  {it.isDir ? '📁 ' : '📄 '}{it.name}
-                </a>
-              </td>
-              <td className="muted">{it.isDir ? '—' : formatSize(it.size)}</td>
-              <td className="muted" style={{ fontSize: 12 }}>{formatDate(it.mtime)}</td>
-              <td>
-                {!it.isDir && <button onClick={() => openFile(it.name)} style={{ padding: '3px 8px' }}>Edit</button>}
-                {!it.isDir && <button onClick={() => downloadFile(it.name)} style={{ padding: '3px 8px', marginLeft: 4 }}>⬇</button>}
-                <button className="danger" onClick={() => del(it.name)} style={{ padding: '3px 8px', marginLeft: 4 }}>Del</button>
-              </td>
-            </tr>
-          ))}
-          {items.length === 0 && <tr><td className="muted" colSpan={4}>Empty folder</td></tr>}
-        </tbody>
-      </table>
-      <div className="row" style={{ marginTop: 12 }}>
+
+      {/* Desktop table */}
+      <div className="table-responsive">
+        <table className="table file-table">
+          <thead><tr><th>Name</th><th className="hide-mobile">Size</th><th className="hide-mobile">Modified</th><th>Actions</th></tr></thead>
+          <tbody>
+            {items.map((it) => (
+              <tr key={it.path}>
+                <td>
+                  <a onClick={() => it.isDir ? openDir(it.name) : openFile(it.name)} style={{ cursor: 'pointer' }}>
+                    {it.isDir ? 'Folder' : 'File'} {it.name}
+                  </a>
+                </td>
+                <td className="muted hide-mobile">{it.isDir ? '-' : formatSize(it.size)}</td>
+                <td className="muted hide-mobile" style={{ fontSize: 12 }}>{formatDate(it.mtime)}</td>
+                <td>
+                  <div className="row-mobile" style={{ gap: 4 }}>
+                    {!it.isDir && <button onClick={() => openFile(it.name)} style={{ padding: '3px 8px' }}>Edit</button>}
+                    {!it.isDir && <button onClick={() => downloadFile(it.name)} style={{ padding: '3px 8px' }}>DL</button>}
+                    <button className="danger" onClick={() => del(it.name)} style={{ padding: '3px 8px' }}>Del</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {items.length === 0 && <tr><td className="muted" colSpan={4}>Empty folder</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="row-mobile" style={{ marginTop: 12 }}>
         <input className="flex1" value={newName} onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && createEntry()}
-          placeholder="New file or folder/ (trailing slash = directory)" />
-        <button className="blue" onClick={createEntry}>+ Create</button>
+          placeholder="New file or folder/ (trailing / = dir)" />
+        <button className="blue" onClick={createEntry}>Create</button>
       </div>
     </div>
   );
