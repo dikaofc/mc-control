@@ -38,7 +38,6 @@ ENV MC_SERVERS_DIR=/data/servers
 ENV MC_CACHE_DIR=/data/cache
 ENV MC_BACKUPS_DIR=/data/backups
 
-VOLUME ["/data"]
 EXPOSE $PORT
 STOPSIGNAL SIGTERM
 CMD ["node", "src/index.js"]
