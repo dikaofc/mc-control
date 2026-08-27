@@ -1,6 +1,5 @@
 // PTY terminal service: spawns a real shell in a workspace and streams it
 // over a WebSocket. Uses node-pty for a full interactive TTY (vim/htop work).
-import pty from 'node-pty';
 import path from 'node:path';
 import { config } from '../config.js';
 import { Manager } from './manager.js';
@@ -19,7 +18,18 @@ function workspaceDir(manager, projectId, userId) {
 
 // Attach a terminal session to a WebSocket connection.
 // conn: ws connection; msg handlers: { type:'data', data } in, { type:'resize', cols, rows } in.
-export function attachTerminal(conn, manager, user, projectId) {
+export async function attachTerminal(conn, manager, user, projectId) {
+  let pty;
+  try {
+    // Lazy-load: if the native binding fails, the rest of the control plane
+    // (file manager, process runner, API) keeps working instead of crashing.
+    pty = (await import('node-pty')).default;
+  } catch (err) {
+    if (conn.readyState === 1) conn.send(JSON.stringify({ type: 'data', data: `\r\n\x1b[31m[Terminal unavailable: node-pty failed to load: ${err.message}]\x1b[0m\r\n` }));
+    conn.on('message', () => {});
+    return null;
+  }
+
   const cwd = (projectId && workspaceDir(manager, projectId, user.id)) || config.projectsDir;
   const term = pty.spawn(shellPath(), [], {
     name: 'xterm-color',

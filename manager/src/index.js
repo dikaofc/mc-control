@@ -8,6 +8,16 @@ import { buildRouter } from './api/router.js';
 import { attachWebSocket } from './api/ws.js';
 import { config } from './config.js';
 
+// Surface startup crashes in the deploy log instead of a silent exit.
+process.on('uncaughtException', (err) => {
+  console.error('[vps-panel] FATAL uncaughtException:', err && err.stack || err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[vps-panel] FATAL unhandledRejection:', err && err.stack || err);
+  process.exit(1);
+});
+
 // Refuse to start with the insecure default secret — session tokens would be
 // forgeable by anyone who knows the (public) default.
 if (!process.env.MC_SESSION_SECRET || config.sessionSecret === 'dev-insecure-secret-change-me') {

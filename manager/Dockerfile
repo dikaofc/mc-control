@@ -5,13 +5,17 @@ FROM node:20-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg \
-        build-essential python3 make g++ \
+        build-essential python3 make g++ pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev && npm cache clean --force
+# Build node-pty from source so the native binding matches this exact Node ABI
+# (prebuilt binaries can be missing/mismatched for some node versions).
+RUN npm install --omit=dev \
+    && npm rebuild node-pty --build-from-source \
+    && npm cache clean --force
 
 COPY . .
 

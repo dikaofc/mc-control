@@ -6,7 +6,7 @@ WORKDIR /app
 # Install common runtimes and tools for a real VPS environment.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         bash-completion curl wget git unzip tar ca-certificates gnupg lsb-release \
-        build-essential python3 python3-pip python3-venv \
+        build-essential python3 python3-pip python3-venv pkg-config \
         procps htop tmux \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,7 +19,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 FROM base AS manager-deps
 WORKDIR /app/manager
 COPY manager/package.json manager/package-lock.json* ./
-RUN npm install --omit=dev && npm cache clean --force
+# Build node-pty from source so the native binding matches this exact Node ABI.
+RUN npm install --omit=dev \
+    && npm rebuild node-pty --build-from-source \
+    && npm cache clean --force
 
 # ---- build the static dashboard ----
 FROM base AS web-build
