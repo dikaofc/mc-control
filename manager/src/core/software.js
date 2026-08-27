@@ -122,11 +122,14 @@ async function fabricBuild(version) {
   const load = loader[0] && loader[0].version;
   if (!inst || !load) return null;
   // Fabric runs via installer; we fetch the installer jar and the dashboard
-  // instructs running it once to produce the server jar.
-  return {
-    installerUrl: `https://meta.fabricmc.net/v2/versions/installer/${inst}/downloads/fabric-installer-${inst}.jar`,
-    loader, version,
-  };
+  // instructs running it once to produce the server jar. The installer jar
+  // lives on Fabric's maven repo (not the meta API path). The API's own
+  // `url` field already points at the correct jar, so use that directly.
+  const installerEntry = installer.find((i) => i.version === inst) || installer[0];
+  const installerUrl = installerEntry && installerEntry.url
+    ? installerEntry.url
+    : `https://maven.fabricmc.net/net/fabricmc/fabric-installer/${inst}/fabric-installer-${inst}.jar`;
+  return { installerUrl, loader, version };
 }
 
 // ---- Forge ---------------------------------------------------------------

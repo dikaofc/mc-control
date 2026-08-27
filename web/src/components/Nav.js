@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { clearToken } from '../lib/api';
 
@@ -11,11 +12,11 @@ export default function Nav() {
   return (
     <div className="nav">
       <div className="nav-inner">
-        <a href="/" className="brand">MC<span>Control</span></a>
-        <a href="/">Servers</a>
-        <a href="/software">Software</a>
+        <Link href="/" className="brand">MC<span>Control</span></Link>
+        <Link href="/">Servers</Link>
+        <Link href="/software">Software</Link>
         <div className="flex1" />
-        <a href="/account">Account</a>
+        <Link href="/account">Account</Link>
         <button onClick={logout} style={{ padding: '4px 10px' }}>Logout</button>
       </div>
     </div>
