@@ -132,7 +132,8 @@ function InstallBox({ id, current, onDone }) {
   async function install() {
     setBusy(true); setMsg('Downloading & installing…');
     try {
-      await api.install(id, software, version === 'latest' ? (versions[versions.length - 1] || 'latest') : version);
+      const v = version === 'latest' ? (versions[versions.length - 1] || 'latest') : version;
+      await api.install(id, software, v);
       setMsg('Installed!');
       onDone();
     } catch (e) { setMsg('Error: ' + e.message); }
@@ -149,9 +150,12 @@ function InstallBox({ id, current, onDone }) {
         <option value="forge">Forge</option>
         <option value="bedrock">Bedrock</option>
       </select>
-      <input style={{ width: 180 }} list="iv" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="version" />
+      <input style={{ width: 180 }} list="iv" value={version} onChange={(e) => setVersion(e.target.value)} placeholder="latest" />
       <datalist id="iv">{versions.map((v) => <option key={v} value={v} />)}</datalist>
       <button className="primary" onClick={install} disabled={busy}>{busy ? 'Installing…' : 'Install'}</button>
+      {version && version !== 'latest' && !versions.includes(version) && (
+        <span className="muted" style={{ color: 'var(--yellow)' }}>Use an MC version like 1.21.4, not a build number.</span>
+      )}
       {msg && <span className="muted">{msg}</span>}
     </div>
   );

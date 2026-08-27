@@ -35,6 +35,14 @@ const server = http.createServer(app);
 attachWebSocket(server, manager);
 startScheduler(manager);
 
+// Refuse to boot with the default/insecure session secret. Session tokens would
+// be forgeable by anyone. Production MUST set MC_SESSION_SECRET.
+if (!process.env.MC_SESSION_SECRET || config.sessionSecret === 'dev-insecure-secret-change-me') {
+  console.error('[manager] FATAL: MC_SESSION_SECRET is not set (or still the insecure default).');
+  console.error('[manager] Set a long random secret (e.g. `openssl rand -hex 32`) before starting.');
+  process.exit(1);
+}
+
 server.listen(config.port, config.host, () => {
   console.log(`[manager] listening on http://${config.host}:${config.port}`);
   console.log(`[manager] data dir: ${config.dataDir}`);

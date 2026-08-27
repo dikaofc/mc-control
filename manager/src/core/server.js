@@ -2,6 +2,7 @@
 // parses structured events (status, players, join/leave), and exposes control.
 import { EventEmitter } from 'node:events';
 import { spawn } from 'node:child_process';
+import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config } from '../config.js';
@@ -33,6 +34,8 @@ export class McServer extends EventEmitter {
     this.memBytes = 0;
     this._statsTimer = null;
     this._listTimer = null;
+    this._statSampleAt = 0;
+    this._lastCpuTicks = 0;
   }
 
   get dir() { return this.dirs.serverDir; }
@@ -194,13 +197,37 @@ export class McServer extends EventEmitter {
 
   _sampleStats() {
     if (!this.child || !this.child.pid) return;
+    const pid = this.child.pid;
     let cpu = 0;
+    let memBytes = 0;
+    // Read the child process's own usage from /proc (Linux). Fall back to the
+    // manager's own metrics if /proc is unavailable (non-Linux hosts).
     try {
+      const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+      const fields = stat.split(' ');
+      const utime = Number(fields[13]) || 0; // clock ticks in user mode
+      const stime = Number(fields[14]) || 0; // clock ticks in kernel mode
+      const startTime = Number(fields[21]) || 0;
+      const ticks = (os.cpus().length || 1) * 100; // Linux CLK_TCK = 100
+      const now = Date.now();
+      const elapsedMs = now - this._statSampleAt;
+      if (this._statSampleAt && elapsedMs > 0) {
+        const deltaTicks = (utime + stime) - (this._lastCpuTicks || 0);
+        cpu = Math.min(100, (deltaTicks / (elapsedMs / 1000)) / ticks * 100);
+      }
+      this._lastCpuTicks = utime + stime;
+      this._statSampleAt = now;
+
+      const status = fs.readFileSync(`/proc/${pid}/status`, 'utf8');
+      const vm = status.match(/^VmRSS:\s+(\d+)\s+kB$/m);
+      memBytes = vm ? Number(vm[1]) * 1024 : 0;
+    } catch {
       const usage = process.cpuUsage();
       cpu = (usage.user + usage.system) / 1e6;
-    } catch {}
+      memBytes = process.memoryUsage().heapUsed;
+    }
     this.cpuPercent = Number(cpu.toFixed(1));
-    this.memBytes = process.memoryUsage().heapUsed;
+    this.memBytes = memBytes;
     this.lastStatsAt = Date.now();
     this.emit('stats', this.stats());
   }

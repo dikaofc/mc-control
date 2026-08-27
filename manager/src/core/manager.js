@@ -41,8 +41,10 @@ export class Manager {
   registerUser(username, password, role = 'user') {
     if (this.findUserByName(username)) throw new Error('Username already exists');
     const id = uid('usr');
+    // Role is NEVER taken from client input — self-registration is always a
+    // normal user. Only an existing admin can promote via a separate flow.
     this.store.insert('users', {
-      id, username, password: createPassword(password), role, createdAt: Date.now(),
+      id, username, password: createPassword(password), role: 'user', createdAt: Date.now(),
     });
     return this.findUserById(id);
   }
@@ -67,6 +69,16 @@ export class Manager {
   // --- servers -----------------------------------------------------------
   _serverDir(id) {
     return path.join(config.serversDir, id);
+  }
+
+  _validPort(inputPort, fallbackIndex) {
+    let p = Number(inputPort);
+    if (!Number.isInteger(p) || p < 1 || p > 65535) p = config.defaultPort + (fallbackIndex || 0);
+    // Avoid colliding with another server's port.
+    const taken = new Set(this.store.list('servers').map((s) => s.port));
+    while (taken.has(p)) p += 1;
+    if (p > 65535) p = config.defaultPort + (fallbackIndex || 0);
+    return p;
   }
 
   _jarPath(record) {
@@ -136,7 +148,7 @@ export class Manager {
       platform: input.platform === 'bedrock' ? 'bedrock' : 'java',
       software: input.software || 'vanilla',
       version: input.version || 'latest',
-      port: input.port || (config.defaultPort + this.store.list('servers').length),
+      port: this._validPort(input.port, this.store.list('servers').length),
       memoryMb: Math.min(input.memoryMb || config.defaultMemoryMb, config.maxMemoryMb),
       maxPlayers: input.maxPlayers || 20,
       gamemode: input.gamemode || 'survival',

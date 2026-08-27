@@ -27,6 +27,7 @@ export default function ScheduleTab({ id }) {
     try { await api.updateTask(id, taskId, patch); load(); } catch (e) { setMsg(e.message); }
   }
   async function remove(taskId) {
+    if (!confirm('Delete this scheduled task?')) return;
     try { await api.removeTask(id, taskId); load(); } catch (e) { setMsg(e.message); }
   }
 

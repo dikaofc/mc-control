@@ -8,6 +8,13 @@ import { uid } from '../util/store.js';
 
 const execFileAsync = promisify(execFile);
 
+// Only allow safe backup filenames: no slashes, no "..", no nulls.
+function safeBackupName(name) {
+  if (typeof name !== 'string' || !name) return null;
+  if (/[\/\\]|\.\.|\0/.test(name)) return null;
+  return name;
+}
+
 export function backupDirFor(serverId) {
   return path.join(config.backupsDir, serverId);
 }
@@ -16,11 +23,12 @@ export async function createBackup(manager, serverId, userId, name) {
   const rec = manager.store.find('servers', serverId);
   if (!rec) throw new Error('Server not found');
   if (rec.ownerId !== userId && !manager._isAdmin(userId)) throw new Error('Forbidden');
+  const safe = safeBackupName(name);
   const src = path.join(config.serversDir, serverId);
   const dir = backupDirFor(serverId);
   fs.mkdirSync(dir, { recursive: true });
   const id = uid('bkp');
-  const fname = `${name || 'backup'}-${Date.now()}.tar.gz`;
+  const fname = `${safe || 'backup'}-${Date.now()}.tar.gz`;
   const out = path.join(dir, fname);
   // exclude cache + backups (--exclude must precede the source path)
   await execFileAsync('tar', ['-czf', out, '--exclude=./cache', '-C', src, '.'], { timeout: 120000 });
@@ -44,6 +52,7 @@ export async function restoreBackup(manager, serverId, userId, backupName) {
   const rec = manager.store.find('servers', serverId);
   if (!rec) throw new Error('Server not found');
   if (rec.ownerId !== userId && !manager._isAdmin(userId)) throw new Error('Forbidden');
+  if (!safeBackupName(backupName)) throw new Error('Invalid backup name');
   const src = path.join(config.serversDir, serverId);
   const archive = path.join(backupDirFor(serverId), backupName);
   if (!fs.existsSync(archive)) throw new Error('Backup not found');
@@ -59,6 +68,7 @@ export async function deleteBackup(manager, serverId, userId, backupName) {
   const rec = manager.store.find('servers', serverId);
   if (!rec) throw new Error('Server not found');
   if (rec.ownerId !== userId && !manager._isAdmin(userId)) throw new Error('Forbidden');
+  if (!safeBackupName(backupName)) throw new Error('Invalid backup name');
   const archive = path.join(backupDirFor(serverId), backupName);
   if (fs.existsSync(archive)) fs.unlinkSync(archive);
   return { ok: true };
