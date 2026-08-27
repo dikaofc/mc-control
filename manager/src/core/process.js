@@ -2,6 +2,7 @@
 // run dev, ...) inside a project workspace. Tracks running processes so they
 // can be listed and stopped. Output is broadcast over WebSocket.
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { Manager } from './manager.js';
 import { config } from '../config.js';
@@ -16,6 +17,14 @@ function sanitizeEnv(env) {
     out[k] = v;
   }
   return out;
+}
+
+// Cheap check for an unprivileged runtime user (avoid spawning runuser for a
+// missing user, which would error out the command).
+function userExists(name) {
+  try {
+    return fs.readFileSync('/etc/passwd', 'utf8').split('\n').some((l) => l.startsWith(name + ':'));
+  } catch { return false; }
 }
 
 export class ProcessManager {
@@ -51,10 +60,12 @@ export class ProcessManager {
     const id = uid('proc');
     // Drop Railway/panel secrets from the child env so a process cannot read
     // MC_SESSION_SECRET or Railway creds via `env` (was a proven root-RCE step).
-    const childEnv = sanitizeEnv({ ...process.env, HOME: process.env.HOME || '/data' });
-    // Run as an unprivileged user when available (see Dockerfile: appuser).
     const runAs = process.env.MC_RUN_USER || 'appuser';
-    const useUnpriv = !opts.asRoot;
+    const homeDir = `/home/${runAs}`;
+    const childEnv = sanitizeEnv({ ...process.env, HOME: homeDir });
+    // Run as an unprivileged user when available (see Dockerfile: appuser).
+    // Fall back to direct /bin/sh if that user doesn't exist (e.g. local dev).
+    const useUnpriv = !opts.asRoot && userExists(runAs);
     const child = spawn(useUnpriv ? 'runuser' : '/bin/sh',
       useUnpriv ? ['-u', runAs, '--', '/bin/sh', '-c', cmd] : ['-c', cmd], {
       cwd,

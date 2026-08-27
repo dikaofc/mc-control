@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Unprivileged user that workspace processes + terminals run as (not root).
+RUN useradd -m -u 1000 -s /bin/bash appuser
+
 COPY package.json package-lock.json* ./
 # Build node-pty from source so the native binding matches this exact Node ABI
 # (prebuilt binaries can be missing/mismatched for some node versions).
@@ -23,6 +26,9 @@ COPY . .
 ENV PORT=8090
 ENV MC_DATA_DIR=/data
 ENV MC_PROJECTS_DIR=/data/projects
+ENV MC_RUN_USER=appuser
+ENV MC_RUN_UID=1000
+ENV MC_RUN_GID=1000
 
 # /data is the mounted Railway volume (persists projects).
 # No VOLUME instruction — Railway mounts it via railway.toml.

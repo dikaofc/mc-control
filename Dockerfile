@@ -36,15 +36,21 @@ RUN npm run build
 # ---- runtime ----
 FROM base AS runner
 WORKDIR /app/manager
+# Unprivileged user that workspace processes + terminals run as (not root).
+RUN useradd -m -u 1000 -s /bin/bash appuser
 COPY --from=manager-deps /app/manager/node_modules ./node_modules
 COPY manager/ ./
 # Copy the exported dashboard (out/) into manager/public so express serves it.
 RUN rm -rf public
 COPY --from=web-build /app/web/out ./public
+RUN chown -R appuser:appuser /app/manager/public 2>/dev/null || true
 
 ENV PORT=8090
 ENV MC_DATA_DIR=/data
 ENV MC_PROJECTS_DIR=/data/projects
+ENV MC_RUN_USER=appuser
+ENV MC_RUN_UID=1000
+ENV MC_RUN_GID=1000
 # MC_SESSION_SECRET must be set in Railway Variables (a long random string).
 # If it is missing or left at the default, the manager refuses to start.
 

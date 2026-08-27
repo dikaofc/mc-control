@@ -57,11 +57,7 @@ app.use(express.json({ limit: '1mb' }));
 const limiter = RateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 app.use(limiter);
 
-app.get('/api/health', (req, res) => res.json({
-  ok: true,
-  uptime: process.uptime(),
-  workspaces: manager.store.list('projects').length,
-}));
+app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api', buildRouter(manager));
 
 // Static dashboard.

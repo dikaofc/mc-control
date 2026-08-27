@@ -1,5 +1,6 @@
 // PTY terminal service: spawns a real shell in a workspace and streams it
 // over a WebSocket. Uses node-pty for a full interactive TTY (vim/htop work).
+import fs from 'node:fs';
 import path from 'node:path';
 import { config } from '../config.js';
 import { Manager } from './manager.js';
@@ -7,6 +8,20 @@ import { Manager } from './manager.js';
 function shellPath() {
   if (process.platform === 'win32') return 'powershell.exe';
   return process.env.SHELL || '/bin/bash';
+}
+
+// Run the interactive shell as the unprivileged runtime user when it exists,
+// so the terminal is not a root shell (see Dockerfile: appuser).
+function shellCommand() {
+  const runAs = process.env.MC_RUN_USER || 'appuser';
+  if (userExists(runAs)) return ['runuser', '-u', runAs, '--', shellPath()];
+  return [shellPath()];
+}
+
+function userExists(name) {
+  try {
+    return fs.readFileSync('/etc/passwd', 'utf8').split('\n').some((l) => l.startsWith(name + ':'));
+  } catch { return false; }
 }
 
 function workspaceDir(manager, projectId, userId) {
@@ -35,7 +50,7 @@ export async function attachTerminal(conn, manager, user, projectId) {
   // Never expose the panel signing secret or Railway creds to the shell.
   delete env.MC_SESSION_SECRET;
   for (const k of Object.keys(env)) if (/railway/i.test(k)) delete env[k];
-  const term = pty.spawn(shellPath(), [], {
+  const term = pty.spawn(shellCommand()[0], shellCommand().slice(1), {
     name: 'xterm-color',
     cols: 80,
     rows: 24,

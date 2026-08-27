@@ -94,10 +94,18 @@ export class Manager {
     const record = {
       id, name: input.name || 'My Project', ownerId: userId, createdAt: Date.now(),
     };
-    fs.mkdirSync(path.join(config.projectsDir, id), { recursive: true });
+    const dir = path.join(config.projectsDir, id);
+    fs.mkdirSync(dir, { recursive: true });
+    // Hand the workspace to the unprivileged runtime user so processes/terminal
+    // running as appuser can read+write it. Best-effort (root is fine too).
+    try { fs.chownSync(dir, this._appUid(), this._appGid()); } catch {}
     this.store.insert('projects', record);
     return this._publicProject(record);
   }
+
+  // UID/GID of the unprivileged user processes run as (MC_RUN_USER, default appuser).
+  _appUid() { return Number(process.env.MC_RUN_UID || 1000); }
+  _appGid() { return Number(process.env.MC_RUN_GID || 1000); }
 
   renameProject(id, userId, name) {
     const rec = this.store.find('projects', id);
