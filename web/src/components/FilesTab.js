@@ -90,7 +90,7 @@ export default function FilesTab({ id }) {
               </td>
             </tr>
           ))}
-          {items.length === 0 && <tr><td className="muted" colSpan={3}>Empty folder</td></tr></tbody>}
+          {items.length === 0 && <tr><td className="muted" colSpan={3}>Empty folder</td></tr>}</tbody>
         </table>
       <div className="row" style={{ marginTop: 12 }}>
         <input className="flex1" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="new file or folder/ (trailing slash = dir)" />

@@ -62,7 +62,7 @@ export default function ScheduleTab({ id }) {
               <td><button className="danger" onClick={() => remove(t.id)} style={{ padding: '3px 8px' }}>Remove</button></td>
             </tr>
           ))}
-          {tasks.length === 0 && <tr><td className="muted" colSpan={6}>No scheduled tasks</td></tr></tbody>}
+          {tasks.length === 0 && <tr><td className="muted" colSpan={6}>No scheduled tasks</td></tr>}</tbody>
         </table>
     </div>
   );

@@ -47,7 +47,7 @@ export default function PlayersTab({ id }) {
         </div>
         <table className="table"><tbody>
           {ops.map((o) => <tr key={o.name}><td>{o.name}</td><td style={{ textAlign: 'right' }}><button className="danger" onClick={() => rem('op', o.name)}>Remove</button></td></tr>)}
-          {ops.length === 0 && <tr><td className="muted">No operators</td></tr></tbody>}
+          {ops.length === 0 && <tr><td className="muted">No operators</td></tr>}</tbody>
         </table>
       </div>
 
@@ -59,7 +59,7 @@ export default function PlayersTab({ id }) {
         </div>
         <table className="table"><tbody>
           {wl.map((w) => <tr key={w.name}><td>{w.name}</td><td style={{ textAlign: 'right' }}><button className="danger" onClick={() => rem('wl', w.name)}>Remove</button></td></tr>)}
-          {wl.length === 0 && <tr><td className="muted">Whitelist empty</td></tr></tbody>}
+          {wl.length === 0 && <tr><td className="muted">Whitelist empty</td></tr>}</tbody>
         </table>
       </div>
 
@@ -71,7 +71,7 @@ export default function PlayersTab({ id }) {
         </div>
         <table className="table"><tbody>
           {bans.map((b) => <tr key={(b.name || b)}><td>{b.name || b}</td><td style={{ textAlign: 'right' }}><button className="blue" onClick={() => rem('ban', b.name || b)}>Unban</button></td></tr>)}
-          {bans.length === 0 && <tr><td className="muted">No bans</td></tr></tbody>}
+          {bans.length === 0 && <tr><td className="muted">No bans</td></tr>}</tbody>
         </table>
       </div>
 

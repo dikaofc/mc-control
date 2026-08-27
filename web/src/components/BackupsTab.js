@@ -52,7 +52,7 @@ export default function BackupsTab({ id }) {
               </td>
             </tr>
           ))}
-          {backups.length === 0 && <tr><td className="muted" colSpan={4}>No backups yet</td></tr></tbody>}
+          {backups.length === 0 && <tr><td className="muted" colSpan={4}>No backups yet</td></tr>}</tbody>
         </table>
     </div>
   );
