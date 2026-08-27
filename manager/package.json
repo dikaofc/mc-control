@@ -1,7 +1,7 @@
 {
-  "name": "mc-control-manager",
+  "name": "vps-panel-manager",
   "version": "1.0.0",
-  "description": "Minecraft server control plane manager (Java + Bedrock) — spawns real servers, streams live console.",
+  "description": "VPS Panel — Web terminal, file manager, and process runner.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
