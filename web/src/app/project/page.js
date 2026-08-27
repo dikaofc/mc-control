@@ -8,7 +8,6 @@ import FilesTab from '../../components/FilesTab';
 import ProcessesTab from '../../components/ProcessesTab';
 import SystemTab from '../../components/SystemTab';
 
-// xterm uses `self` (browser global) — must be dynamically imported with ssr: false.
 const Terminal = dynamic(() => import('../../components/Terminal'), { ssr: false });
 
 const TABS = [
@@ -41,7 +40,7 @@ function ProjectPage() {
     <div>
       <Nav />
       <div className="container">
-        <div className="row between" style={{ marginBottom: 12 }}>
+        <div className="row between" style={{ marginBottom: 16 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 className="title truncate">{project.name}</h1>
             <p className="subtitle">VPS Workspace - {project.fileCount} files</p>

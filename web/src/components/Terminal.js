@@ -26,19 +26,19 @@ export default function Terminal({ projectId }) {
         fontSize: typeof window !== 'undefined' && window.innerWidth < 600 ? 11 : 13,
         fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace",
         theme: {
-          background: '#0d1117',
-          foreground: '#e6edf3',
-          cursor: '#58a6ff',
-          cursorAccent: '#0d1117',
-          selectionBackground: '#264f78',
-          black: '#484f58',
-          red: '#ff7b72',
-          green: '#3fb950',
-          yellow: '#d29922',
-          blue: '#58a6ff',
-          magenta: '#bc8cff',
-          cyan: '#39c5cf',
-          white: '#e6edf3',
+          background: '#080a0f',
+          foreground: '#e8ecf4',
+          cursor: '#448aff',
+          cursorAccent: '#080a0f',
+          selectionBackground: 'rgba(68, 138, 255, 0.25)',
+          black: '#4a5568',
+          red: '#ff5252',
+          green: '#00e676',
+          yellow: '#ffd740',
+          blue: '#448aff',
+          magenta: '#b388ff',
+          cyan: '#18ffff',
+          white: '#e8ecf4',
         },
         allowProposedApi: true,
         scrollback: 10000,
@@ -56,13 +56,9 @@ export default function Terminal({ projectId }) {
         }
       });
       wsRef.current = ws;
-      ws.onopen = () => { term.focus(); };
-      ws.onclose = () => {
-        term.writeln('\r\n\x1b[31m[Connection closed. Refresh to reconnect.]\x1b[0m');
-      };
-      ws.onerror = () => {
-        term.writeln('\r\n\x1b[31m[Connection error. Check if the server is running.]\x1b[0m');
-      };
+      ws.onopen = () => term.focus();
+      ws.onclose = () => term.writeln('\r\n\x1b[31m[Connection closed. Refresh to reconnect.]\x1b[0m');
+      ws.onerror = () => term.writeln('\r\n\x1b[31m[Connection error.]\x1b[0m');
 
       term.onData((data) => {
         if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'data', data }));
@@ -91,11 +87,11 @@ export default function Terminal({ projectId }) {
     <div className="terminal-wrap">
       <div className="terminal-bar">
         <div className="terminal-dots">
-          <span className="tdot" style={{ background: '#f85149' }} />
-          <span className="tdot" style={{ background: '#d29922' }} />
-          <span className="tdot" style={{ background: '#3fb950' }} />
+          <span className="tdot" style={{ background: '#ff5252' }} />
+          <span className="tdot" style={{ background: '#ffd740' }} />
+          <span className="tdot" style={{ background: '#00e676' }} />
         </div>
-        <span className="terminal-title">bash — VPS Terminal</span>
+        <span className="terminal-title">bash ~ VPS Terminal</span>
       </div>
       <div ref={containerRef} className="terminal-body" />
     </div>
