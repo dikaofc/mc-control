@@ -1,178 +1,160 @@
-# MC Control — Minecraft Server Hosting (Aternos-like)
+# VPS Panel — Web Terminal & File Manager
 
-A complete, self-hostable Minecraft **Java & Bedrock** server control plane: a web dashboard
-(that deploys to **Vercel**) plus a backend **manager** that actually launches real Minecraft
-servers, streams a live console, and manages files, backups, players, plugins/mods and schedules.
-
-> ⚠️ **Architecture note (important).** Vercel is serverless: it cannot run a long-lived Java
-> process, has no JVM, and kills processes after 60s (hobby) / 300s (pro). So the **dashboard
-> (control plane) runs on Vercel**, while the **manager (data plane) runs on a normal host with
-> Java** (a VPS, a PC, a Raspberry Pi, or even this Termux/Android box). They talk over REST +
-> WebSocket. This is exactly how Aternos works — website and server fleet are separate.
-
-```
-┌──────────────┐         REST + WebSocket          ┌──────────────────────┐
-│  Vercel      │  ───────────────────────────────▶ │  Manager (Node.js)   │
-│  Dashboard   │   NEXT_PUBLIC_MANAGER_URL         │  spawns real Java /  │
-│  (Next.js)   │  ◀─────────────────────────────── │  Bedrock processes   │
-└──────────────┘   live console + stats            └──────────────────────┘
-                                                              │
-                                                              ▼
-                                                 Real Minecraft server (port 25565…)
-```
+A self-hostable **web-based VPS terminal + file manager**. Full Linux environment in your browser — run anything (Node.js, Python, Bash, etc.), manage files, monitor system resources.
 
 ## Features
 
-- **Full software catalog** (live from official sources): Vanilla, Paper, Purpur, Fabric, Forge,
-  Spigot (BuildTools), Bedrock Dedicated. Every version, fetched on demand.
-- **Live server control**: start / stop / restart, real-time console over WebSocket, live player
-  count, uptime, CPU/memory stats.
-- **Settings**: gamemode, difficulty, MOTD, whitelist, PvP, online-mode, view distance, command
-  blocks, EULA, memory, port, max players — applied live where possible.
-- **File manager**: browse / view / edit / create / delete any server file.
-- **Backups**: full `tar.gz` snapshots, restore, delete.
-- **Players**: ops, whitelist, bans — via both the JSON files and in-game commands.
-- **Plugins / Mods**: search + install from Modrinth (plugins for Paper/Purpur/Spigot, mods for
-  Fabric/Forge).
-- **Scheduler**: recurring commands or start/stop (every 5/15/30 min, hourly, daily).
-- **Auth**: scrypt password hashing + HMAC-signed sessions, multi-user (admin/user).
+- **🖥️ Full Terminal**: Real PTY shell (bash) via WebSocket. Supports vim, htop, tmux — anything that needs a TTY.
+- **📁 File Manager**: Browse, edit, create, delete, upload files in your workspace.
+- **⚡ Process Runner**: Run any command in the background — `node app.js`, `python main.py`, `npm run dev`, `apt install ...`. Output streams live.
+- **📊 System Monitor**: Live CPU, memory, disk usage, OS info, available runtimes.
+- **🔐 Auth**: Multi-user with scrypt password hashing + HMAC-signed sessions.
+- **📦 Workspaces**: Isolated directories, each with its own terminal and file manager.
 
-## Quick start (local)
+## Pre-installed Runtimes
 
-### 1. Manager (needs Java 17+)
+The Docker image includes everything you need:
+- **Node.js 20 LTS** (npm, npx)
+- **Python 3** (pip, venv)
+- **Bash** (with completion)
+- **Git**
+- **Build tools** (gcc, make, etc.)
+- **Utilities** (curl, wget, htop, tmux)
+
+## Quick Start
+
+### Option A: Combined (single container — recommended)
 
 ```bash
+docker build -t vps-panel .
+docker run -p 8090:8090 \
+  -e MC_SESSION_SECRET=$(openssl rand -hex 32) \
+  -v vps-data:/data \
+  vps-panel
+```
+
+Open http://localhost:8090 — login with `admin / admin123`.
+
+### Option B: Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  vps:
+    build: .
+    ports:
+      - "8090:8090"
+    environment:
+      - MC_SESSION_SECRET=change-me-to-a-random-string
+    volumes:
+      - vps-data:/data
+
+volumes:
+  vps-data:
+```
+
+### Option C: Run directly
+
+```bash
+# Manager
 cd manager
 npm install
-npm start            # listens on :8080 (set PORT to change)
-# default login: admin / admin123   (change it!)
-```
+npm start    # http://localhost:8080
 
-Java version requirement depends on the MC version you install:
-- Minecraft ≤ 1.20.4 → Java 17
-- Minecraft ≥ 1.20.5 (e.g. 1.21.x) → Java 21
-
-### 2. Dashboard (Vercel or local)
-
-```bash
+# Web (optional, if you want separate dashboard)
 cd web
 npm install
-# point the dashboard at your manager:
-export NEXT_PUBLIC_MANAGER_URL=http://<manager-host>:8080
-npm run dev          # http://localhost:3000
+export NEXT_PUBLIC_MANAGER_URL=http://localhost:8080
+npm run dev  # http://localhost:3000
 ```
 
-Open the dashboard, log in, create a server, pick a software + version, **Install**, then **Start**.
+## Deploy to Railway
 
-## Deploy to Vercel
+Railway runs long-lived containers with WebSocket + volumes — perfect for this.
 
-1. Push this repo to GitHub.
-2. In Vercel, **Import** the `web` folder as a project (framework = Next.js).
-3. Set the environment variable:
-   - `NEXT_PUBLIC_MANAGER_URL` = `https://<your-manager-host>` (the public URL of the manager
-     below). Must be reachable from browsers and support WebSocket (`wss://`).
-4. Deploy. The dashboard builds and serves from Vercel's CDN.
-
-The manager must be deployed separately (see below) — it cannot run on Vercel.
-
-## Deploy the manager
-
-The manager is a plain Node.js service. Run it on any host with Node 18+ and a JRE:
-
-- **VPS / Docker / systemd / a spare machine**, or
-- **This Termux/Android box** (already running here on port 8090).
-
-Example systemd unit (manager.service):
-
-```ini
-[Unit]
-Description=MC Control Manager
-After=network.target
-
-[Service]
-WorkingDirectory=/opt/mc-control/manager
-ExecStart=/usr/bin/node src/index.js
-Environment=PORT=8080
-Environment=MC_SESSION_SECRET=change-me-to-a-long-random-string
-Restart=always
-User=mc
-
-[Install]
-WantedBy=multi-user.target
+```bash
+# Set environment variables in Railway dashboard:
+# MC_SESSION_SECRET = <random string>
+# Volume /data is mounted automatically.
 ```
 
-Expose it with a reverse proxy (Caddy/Nginx) and obtain a TLS cert so the dashboard can use
-`wss://`. The manager itself has no built-in TLS.
+The `railway.toml` defines a `combined` service that builds and deploys everything in one container.
 
-### Manager environment variables
+## Deploy to any VPS
 
-| Var | Default | Meaning |
-|-----|---------|---------|
-| `PORT` | `8080` | HTTP/WS listen port |
-| `HOST` | `0.0.0.0` | bind interface |
-| `MC_SESSION_SECRET` | `dev-…` | **set this in production** (session signing) |
-| `MC_DATA_DIR` | `manager/data` | db + server dirs |
-| `MC_SERVERS_DIR` | `data/servers` | per-server folders |
-| `MC_CACHE_DIR` | `data/cache` | downloaded zips/jars |
-| `MC_BACKUPS_DIR` | `data/backups` | backup archives |
-| `JAVA_BIN` | `java` | java executable |
-| `MC_DEFAULT_MEM` | `1024` | default RAM (MB) |
-| `MC_MAX_MEM` | `4096` | RAM cap (MB) |
-| `MC_BIND_HOST` | `0.0.0.0` | server listen IP |
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com | sh
 
-## Notes & limitations
-
-- **Bedrock** requires the official Mojang Bedrock dedicated server (Linux x64/arm64). The manager
-  downloads and extracts it. Bedrock executable must be marked executable on the host.
-- **Spigot** is listed but requires running BuildTools on the host (it compiles from source); the
-  UI directs you to do this manually or via a scheduled task.
-- **Paper** download uses PaperMC's current distribution. If their API/URL changes, update
-  `manager/src/core/software.js`.
-- **Modrinth/Hangar** plugin search depends on those public APIs being reachable from the manager
-  host.
-- The manager stores data in a JSON file (`data/db.json`) — fine for small/self-hosted use. Swap
-  `Store` for Postgres/SQLite for larger deployments.
-
-## Project layout
-
-```
-manager/                 # control plane backend (Node.js, runs on a Java host)
-  src/core/manager.js    #   orchestration, auth, server registry
-  src/core/server.js     #   live process spawn + console capture
-  src/core/software.js   #   version catalog + jar/zip downloader
-  src/features/          #   files, backups, players, plugins, scheduler
-  src/api/               #   Express REST + WebSocket
-web/                     # dashboard (Next.js, deploys to Vercel)
-  src/app/               #   pages: login, server list, server control
-  src/components/        #   console, settings, players, files, backups, addons, scheduler
-  src/lib/api.js         #   API + WebSocket client
+# Build and run
+docker build -t vps-panel .
+docker run -d \
+  --name vps-panel \
+  -p 8090:8090 \
+  -e MC_SESSION_SECRET=$(openssl rand -hex 32) \
+  -v /data:/data \
+  --restart unless-stopped \
+  vps-panel
 ```
 
-## Deploy to Railway (free tier, runs everything)
+## Environment Variables
 
-Railway runs long-lived containers with Java + WebSocket + volumes — so the **manager
-(and the Minecraft servers it spawns) run here**, unlike Vercel. Two ready-made options:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8090` | HTTP/WS listen port |
+| `HOST` | `0.0.0.0` | Bind interface |
+| `MC_SESSION_SECRET` | `dev-...` | **Required in production** — session signing key |
+| `MC_DATA_DIR` | `manager/data` | Database + workspace root |
+| `MC_PROJECTS_DIR` | `data/projects` | Per-workspace directories |
 
-### Option B — Combined (recommended for free hosting)
-One container: the manager serves the static dashboard itself. Most efficient.
-- `railway.toml` already defines a `combined` service using `Dockerfile.combined`.
-- Deploy: `railway up` (or link repo in Railway dashboard → it reads `railway.toml`).
+## API Endpoints
 
-### Option A — Two services
-Separate `manager` (spawns MC) and `web` (nginx dashboard) services, defined in `railway.toml`.
-The `web` service gets `NEXT_PUBLIC_MANAGER_URL=${{ services.manager.url }}` automatically.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/login` | Login |
+| `POST` | `/api/auth/register` | Register new user |
+| `GET` | `/api/auth/me` | Current user info |
+| `GET` | `/api/system` | System info (CPU, RAM, disk) |
+| `GET` | `/api/projects` | List workspaces |
+| `POST` | `/api/projects` | Create workspace |
+| `GET` | `/api/projects/:id` | Get workspace |
+| `GET` | `/api/projects/:id/files` | List files |
+| `GET` | `/api/projects/:id/files/read` | Read file |
+| `POST` | `/api/projects/:id/files/write` | Write file |
+| `POST` | `/api/projects/:id/processes` | Run command |
+| `WS` | `/ws?mode=terminal&projectId=...` | PTY terminal |
 
-### After deploy (both options)
-1. Railway dashboard → manager/combined service → Variables → set `MC_SESSION_SECRET`
-   to a long random string (default is `CHANGE_ME`).
-2. Volume `/data` is mounted automatically → worlds & backups persist across restarts.
-3. Free-tier RAM is limited (~512MB–1GB). Keep `MC_MAX_MEM` around 768–1024 and run one
-   small vanilla 1.20.x server. Newer 1.21+ with world generation may OOM on free tier.
+## WebSocket Protocol
 
-Note: the Next.js dashboard is built as a **static export** (`output: 'export'`), so it needs
-no Node server of its own and is served by the manager (combined) or nginx (two-service).
+Connect to `ws://host/ws?mode=terminal&projectId=ID&token=TOKEN`.
 
-## Local limitations (this dev box)
-`next build` requires the SWC native binary, which is unavailable on android/arm64 (Termux).
-The build succeeds on Railway/Vercel (linux-x64). All dashboard source passes syntax checks
-and the manager is fully integration-tested here.
+**Client → Server:**
+```json
+{ "type": "data", "data": "ls -la\n" }
+{ "type": "resize", "cols": 120, "rows": 40 }
+```
+
+**Server → Client:**
+```json
+{ "type": "data", "data": "total 48\ndrwxr-xr-x 6..." }
+{ "type": "exit" }
+```
+
+## Project Layout
+
+```
+manager/                  # Backend (Node.js + Express + WebSocket)
+  src/api/router.js       #   REST API routes
+  src/api/ws.js           #   WebSocket handler
+  src/core/terminal.js    #   PTY terminal (node-pty)
+  src/core/process.js     #   Background process runner
+  src/features/files.js   #   File manager backend
+web/                       # Frontend (Next.js)
+  src/app/                 #   Pages: login, workspaces, account
+  src/components/          #   Terminal, Files, Processes, System tabs
+  src/lib/api.js           #   API + WebSocket client
+```
+
+## License
+
+MIT

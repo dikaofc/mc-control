@@ -1,6 +1,6 @@
-# Railway project config. Three deploy options from one repo:
+# Railway project config. VPS control panel: web-based terminal + file manager.
 #
-#   A) "manager" + "web"   -> two services (manager spawns MC, web is the dashboard)
+#   A) "manager" + "web"   -> two services (manager runs the API+PTY, web is the dashboard)
 #   B) "combined"          -> one service: manager serves the dashboard itself
 #                               (most efficient for Railway free tier)
 #
@@ -24,8 +24,8 @@ restartPolicyMaxRetries = 10
   [services.env]
   PORT = "8090"
   MC_SESSION_SECRET = "CHANGE_ME_IN_RAILWAY_DASHBOARD"
-  MC_DEFAULT_MEM = "768"
-  MC_MAX_MEM = "1024"
+  MC_DATA_DIR = "/data"
+  MC_PROJECTS_DIR = "/data/projects"
 
   [services.volumes]
   "/data" = "/data"
@@ -55,8 +55,8 @@ restartPolicyMaxRetries = 10
   [services.env]
   PORT = "8090"
   MC_SESSION_SECRET = "CHANGE_ME_IN_RAILWAY_DASHBOARD"
-  MC_DEFAULT_MEM = "768"
-  MC_MAX_MEM = "1024"
+  MC_DATA_DIR = "/data"
+  MC_PROJECTS_DIR = "/data/projects"
   # Dashboard is served by the manager on the same origin (relative API paths).
 
   [services.volumes]

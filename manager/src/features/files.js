@@ -8,7 +8,7 @@ function serverPath(manager, serverId, userId, rel = '') {
   const rec = manager.store.find('servers', serverId);
   if (!rec) throw new Error('Server not found');
   if (rec.ownerId !== userId && !manager._isAdmin(userId)) throw new Error('Forbidden');
-  const base = path.join(config.serversDir, serverId);
+  const base = path.join(config.projectsDir, serverId);
   const target = path.resolve(base, rel || '.'); // prevent traversal
   if (target !== base && !target.startsWith(base + path.sep)) {
     throw new Error('Path escapes server directory');
@@ -27,7 +27,7 @@ export function listFiles(manager, serverId, userId, rel = '') {
     try { const st = fs.statSync(p); size = st.size; mtime = st.mtimeMs; } catch {}
     return {
       name: d.name,
-      path: path.relative(path.join(config.serversDir, serverId), p),
+      path: path.relative(path.join(config.projectsDir, serverId), p),
       isDir: d.isDirectory(),
       size,
       mtime,
@@ -58,7 +58,7 @@ export function createPath(manager, serverId, userId, rel, isDir = false) {
 
 export function deletePath(manager, serverId, userId, rel) {
   const { target } = serverPath(manager, serverId, userId, rel);
-  if (target === path.join(config.serversDir, serverId)) throw new Error('Cannot delete server root');
+  if (target === path.join(config.projectsDir, serverId)) throw new Error('Cannot delete server root');
   if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true });
   return { ok: true };
 }

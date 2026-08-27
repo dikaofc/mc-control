@@ -34,9 +34,9 @@ export default function LoginPage() {
   return (
     <div className="center-screen">
       <div className="card auth-box">
-        <div className="brand" style={{ marginBottom: 16 }}>MC<span>Control</span></div>
-        <h2 className="title">Welcome</h2>
-        <p className="subtitle">Sign in to manage your Minecraft servers.</p>
+        <div className="brand" style={{ marginBottom: 16 }}>VPS<span>Panel</span></div>
+        <h2 className="title">Web VPS Terminal</h2>
+        <p className="subtitle">Full Linux environment in your browser — terminal, file manager, run anything.</p>
         <div className="tabs" style={{ marginBottom: 18 }}>
           <button className={'tab ' + (mode === 'login' ? 'active' : '')} onClick={() => setMode('login')}>Login</button>
           <button className={'tab ' + (mode === 'register' ? 'active' : '')} onClick={() => setMode('register')}>Register</button>
@@ -56,7 +56,7 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>
-          Default dev login: <span className="mono">admin / admin123</span>
+          Default: <span className="mono">admin / admin123</span>
         </p>
       </div>
     </div>

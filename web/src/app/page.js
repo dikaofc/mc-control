@@ -6,14 +6,10 @@ import { api, getToken } from '../lib/api';
 
 export default function Home() {
   const router = useRouter();
-  const [servers, setServers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({
-    name: '', platform: 'java', software: 'vanilla', version: '', port: 25565,
-    memoryMb: 1024, maxPlayers: 20, acceptEula: false,
-  });
-  const [versions, setVersions] = useState([]);
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -22,37 +18,25 @@ export default function Home() {
   }, []);
 
   async function load() {
-    try { setServers(await api.servers()); }
+    try { setProjects(await api.projects()); }
     catch (e) { setError(e.message); }
     finally { setLoading(false); }
-  }
-
-  async function onPlatformOrSoftwareChange(next) {
-    setForm(next);
-    if (next.software) {
-      try {
-        const vs = await api.versions(next.software);
-        setVersions(vs.map((v) => v.version || v.id || v));
-      } catch { setVersions([]); }
-    }
   }
 
   async function create(e) {
     e.preventDefault();
     setError('');
     try {
-      await api.createServer(form);
-      setShowCreate(false);
-      setForm({ ...form, name: '', version: '' });
-      load();
+      const p = await api.createProject({ name: name || 'Workspace' });
+      setShowCreate(false); setName('');
+      router.push(`/project?id=${p.id}`);
     } catch (err) { setError(err.message); }
   }
 
-  // Refresh statuses every 5s
-  useEffect(() => {
-    const t = setInterval(() => { if (!showCreate) load(); }, 5000);
-    return () => clearInterval(t);
-  }, [showCreate]);
+  async function del(id) {
+    if (!confirm('Delete this workspace and all its files?')) return;
+    try { await api.deleteProject(id); load(); } catch (e) { setError(e.message); }
+  }
 
   return (
     <div>
@@ -60,36 +44,33 @@ export default function Home() {
       <div className="container">
         <div className="row between" style={{ marginBottom: 18 }}>
           <div>
-            <h1 className="title">Your Servers</h1>
-            <p className="subtitle">Manage Minecraft Java & Bedrock servers. Click a server to open the control panel.</p>
+            <h1 className="title">Workspaces</h1>
+            <p className="subtitle">Your Linux environments. Each workspace has a terminal, file manager, and process runner.</p>
           </div>
-          <button className="primary" onClick={() => setShowCreate(true)}>+ Create Server</button>
+          <button className="primary" onClick={() => setShowCreate(true)}>+ New Workspace</button>
         </div>
 
         {error && <div className="err">{error}</div>}
 
         {loading ? <p className="muted">Loading…</p> :
-          servers.length === 0 ? (
+          projects.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-              <p className="muted">No servers yet. Create your first one.</p>
-              <button className="primary" onClick={() => setShowCreate(true)}>+ Create Server</button>
+              <p className="muted" style={{ fontSize: 16, marginBottom: 16 }}>No workspaces yet. Create your first one to get started.</p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button className="primary" onClick={() => setShowCreate(true)}>+ New Workspace</button>
+              </div>
             </div>
           ) : (
             <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-              {servers.map((s) => (
-                <div key={s.id} className="card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/server?id=${s.id}`)}>
+              {projects.map((p) => (
+                <div key={p.id} className="card">
                   <div className="row between">
-                    <strong>{s.name}</strong>
-                    <span className={'pill'}><span className={'dot ' + s.status} />{s.status}</span>
+                    <strong>{p.name}</strong>
+                    <button className="danger" style={{ padding: '3px 8px' }} onClick={() => del(p.id)}>Delete</button>
                   </div>
-                  <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
-                    {s.software} · {s.version || '—'} · :{s.port}
-                  </p>
-                  <div className="row wrap" style={{ gap: 6, marginTop: 8 }}>
-                    <span className="tag">{s.platform}</span>
-                    {s.stats && <span className="tag">👥 {s.stats.players}/{s.maxPlayers}</span>}
-                    {!s.installed && <span className="tag" style={{ color: 'var(--yellow)' }}>not installed</span>}
-                  </div>
+                  <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>{p.fileCount} files</p>
+                  <button className="primary" style={{ marginTop: 10, width: '100%' }}
+                    onClick={() => router.push(`/project?id=${p.id}`)}>Open Terminal →</button>
                 </div>
               ))}
             </div>
@@ -97,68 +78,12 @@ export default function Home() {
 
         {showCreate && (
           <div className="card" style={{ marginTop: 24 }}>
-            <h2 className="title">Create a Server</h2>
-            <form onSubmit={create}>
-              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div className="field">
-                  <label>Name</label>
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="My Server" />
-                </div>
-                <div className="field">
-                  <label>Platform</label>
-                  <select value={form.platform} onChange={(e) => onPlatformOrSoftwareChange({ ...form, platform: e.target.value })}>
-                    <option value="java">Java</option>
-                    <option value="bedrock">Bedrock</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label>Software</label>
-                  <select value={form.software} onChange={(e) => onPlatformOrSoftwareChange({ ...form, software: e.target.value, version: '' })}>
-                    {form.platform === 'java' ? (
-                      <>
-                        <option value="vanilla">Vanilla</option>
-                        <option value="paper">Paper</option>
-                        <option value="purpur">Purpur</option>
-                        <option value="fabric">Fabric</option>
-                        <option value="forge">Forge</option>
-                        <option value="spigot">Spigot</option>
-                      </>
-                    ) : (
-                      <option value="bedrock">Bedrock Dedicated</option>
-                    )}
-                  </select>
-                </div>
-                <div className="field">
-                  <label>Version</label>
-                  <input list="versions" value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} placeholder="e.g. 1.21.4 or latest" />
-                  <datalist id="versions">
-                    {versions.map((v) => <option key={v} value={v} />)}
-                  </datalist>
-                  {versions.length > 0 && <span className="muted" style={{ fontSize: 11 }}>{versions.length} versions available</span>}
-                </div>
-                <div className="field">
-                  <label>Port</label>
-                  <input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: Number(e.target.value) })} />
-                </div>
-                <div className="field">
-                  <label>Memory (MB)</label>
-                  <input type="number" value={form.memoryMb} onChange={(e) => setForm({ ...form, memoryMb: Number(e.target.value) })} />
-                </div>
-                <div className="field">
-                  <label>Max Players</label>
-                  <input type="number" value={form.maxPlayers} onChange={(e) => setForm({ ...form, maxPlayers: Number(e.target.value) })} />
-                </div>
-              </div>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--text)' }}>
-                <input type="checkbox" style={{ width: 'auto' }} checked={form.acceptEula}
-                  onChange={(e) => setForm({ ...form, acceptEula: e.target.checked })} />
-                I accept the Minecraft EULA (required to start)
-              </label>
-              <div className="row" style={{ marginTop: 12 }}>
-                <button type="submit" className="primary">Create</button>
-                <button type="button" onClick={() => setShowCreate(false)}>Cancel</button>
-              </div>
-              {error && <div className="err">{error}</div>}
+            <h2 className="title">New Workspace</h2>
+            <p className="subtitle">Each workspace is an isolated directory with its own terminal session.</p>
+            <form onSubmit={create} className="row wrap" style={{ gap: 10 }}>
+              <input className="flex1" value={name} onChange={(e) => setName(e.target.value)} placeholder="Workspace name (e.g. my-app)" required />
+              <button type="submit" className="primary">Create</button>
+              <button type="button" onClick={() => setShowCreate(false)}>Cancel</button>
             </form>
           </div>
         )}

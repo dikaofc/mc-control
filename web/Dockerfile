@@ -10,6 +10,6 @@ RUN npm run build
 
 FROM nginx:alpine
 COPY --from=build /app/out /usr/share/nginx/html
-# SPA fallback so client-side routes (/server/:id) resolve to index.html.
+# SPA fallback so client-side routes (/project?id=...) resolve to index.html.
 RUN printf 'server {\n  listen 3000;\n  root /usr/share/nginx/html;\n  location /api { return 404; }\n  location / {\n    try_files $uri $uri/ /index.html;\n  }\n}\n' > /etc/nginx/conf.d/default.conf
 EXPOSE 3000

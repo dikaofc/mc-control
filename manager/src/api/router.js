@@ -1,14 +1,10 @@
-// Express API router for the manager.
+// Express API router for the VPS control panel manager.
 import express from 'express';
+import { execSync } from 'node:child_process';
+import os from 'node:os';
 import { Manager } from '../core/manager.js';
 import { authMiddleware } from './auth.js';
-import { handleInstall } from './install.js';
-import { softwareCatalog, listVersions } from '../core/software.js';
 import * as files from '../features/files.js';
-import * as backups from '../features/backups.js';
-import * as players from '../features/players.js';
-import * as plugins from '../features/plugins.js';
-import * as scheduler from '../features/scheduler.js';
 
 export function buildRouter(manager) {
   const router = express.Router();
@@ -28,9 +24,9 @@ export function buildRouter(manager) {
 
   // --- auth ---------------------------------------------------------------
   router.post('/auth/register', wrap(async (req) => {
-    const { username, password, role } = req.body;
+    const { username, password } = req.body;
     if (!username || !password) throw new Error('username and password required');
-    const u = manager.registerUser(username, password, role);
+    const u = manager.registerUser(username, password);
     return { token: manager.issueSession(u), user: { id: u.id, username: u.username, role: u.role } };
   }));
 
@@ -45,79 +41,74 @@ export function buildRouter(manager) {
     user: { id: req.user.id, username: req.user.username, role: req.user.role },
   })));
 
-  // --- catalog ------------------------------------------------------------
-  router.get('/software', wrap(async () => softwareCatalog()));
-  router.get('/software/:software/versions', wrap(async (req) => {
-    return listVersions(req.params.software);
+  // --- projects (workspaces) ---------------------------------------------
+  router.get('/projects', auth, wrap(async (req) => manager.listProjects(req.user.id)));
+  router.post('/projects', auth, wrap(async (req) => manager.createProject(req.body, req.user.id)));
+  router.get('/projects/:id', auth, wrap(async (req) => {
+    const p = manager.getProject(req.params.id, req.user.id);
+    if (!p) throw new Error('Project not found');
+    return p;
   }));
-
-  // --- servers ------------------------------------------------------------
-  router.get('/servers', auth, wrap(async (req) => manager.listServers(req.user.id)));
-  router.post('/servers', auth, wrap(async (req) => manager.createServer(req.body, req.user.id)));
-  router.get('/servers/:id', auth, wrap(async (req) => {
-    const s = manager.getServer(req.params.id, req.user.id);
-    if (!s) throw new Error('Server not found');
-    return s;
-  }));
-  router.patch('/servers/:id', auth, wrap(async (req) => manager.updateServer(req.params.id, req.body, req.user.id)));
-  router.delete('/servers/:id', auth, wrap(async (req) => manager.deleteServer(req.params.id, req.user.id)));
-
-  router.post('/servers/:id/install', auth, wrap(async (req) => {
-    const { software, version } = req.body;
-    if (!software || !version) throw new Error('software and version required');
-    return handleInstall(manager, req.params.id, req.user.id, software, version);
-  }));
-
-  router.post('/servers/:id/start', auth, wrap(async (req) => manager.startServer(req.params.id, req.user.id)));
-  router.post('/servers/:id/stop', auth, wrap(async (req) => manager.stopServer(req.params.id, req.user.id, !!req.body.force)));
-  router.post('/servers/:id/restart', auth, wrap(async (req) => manager.restartServer(req.params.id, req.user.id)));
-  router.post('/servers/:id/command', auth, wrap(async (req) => {
-    const { command } = req.body;
-    if (!command) throw new Error('command required');
-    return manager.sendCommand(req.params.id, req.user.id, command);
-  }));
-  router.get('/servers/:id/console', auth, wrap(async (req) => ({
-    lines: manager.getConsole(req.params.id, req.user.id, Number(req.query.tail) || 500),
-  })));
+  router.patch('/projects/:id', auth, wrap(async (req) => manager.renameProject(req.params.id, req.user.id, req.body.name)));
+  router.delete('/projects/:id', auth, wrap(async (req) => manager.deleteProject(req.params.id, req.user.id)));
 
   // --- files --------------------------------------------------------------
-  router.get('/servers/:id/files', auth, wrap(async (req) => files.listFiles(manager, req.params.id, req.user.id, req.query.path || '')));
-  router.get('/servers/:id/files/read', auth, wrap(async (req) => files.readFile(manager, req.params.id, req.user.id, req.query.path)));
-  router.post('/servers/:id/files/write', auth, wrap(async (req) => files.writeFile(manager, req.params.id, req.user.id, req.body.path, req.body.content)));
-  router.post('/servers/:id/files/create', auth, wrap(async (req) => files.createPath(manager, req.params.id, req.user.id, req.body.path, !!req.body.isDir)));
-  router.delete('/servers/:id/files', auth, wrap(async (req) => files.deletePath(manager, req.params.id, req.user.id, req.query.path)));
-  router.post('/servers/:id/files/rename', auth, wrap(async (req) => files.renamePath(manager, req.params.id, req.user.id, req.body.from, req.body.to)));
+  router.get('/projects/:id/files', auth, wrap(async (req) => files.listFiles(manager, req.params.id, req.user.id, req.query.path || '')));
+  router.get('/projects/:id/files/read', auth, wrap(async (req) => files.readFile(manager, req.params.id, req.user.id, req.query.path)));
+  router.post('/projects/:id/files/write', auth, wrap(async (req) => files.writeFile(manager, req.params.id, req.user.id, req.body.path, req.body.content)));
+  router.post('/projects/:id/files/create', auth, wrap(async (req) => files.createPath(manager, req.params.id, req.user.id, req.body.path, !!req.body.isDir)));
+  router.delete('/projects/:id/files', auth, wrap(async (req) => files.deletePath(manager, req.params.id, req.user.id, req.query.path)));
+  router.post('/projects/:id/files/rename', auth, wrap(async (req) => files.renamePath(manager, req.params.id, req.user.id, req.body.from, req.body.to)));
 
-  // --- backups ------------------------------------------------------------
-  router.get('/servers/:id/backups', auth, wrap(async (req) => backups.listBackups(manager, req.params.id, req.user.id)));
-  router.post('/servers/:id/backups', auth, wrap(async (req) => backups.createBackup(manager, req.params.id, req.user.id, req.body.name)));
-  router.post('/servers/:id/backups/restore', auth, wrap(async (req) => backups.restoreBackup(manager, req.params.id, req.user.id, req.body.name)));
-  router.delete('/servers/:id/backups', auth, wrap(async (req) => backups.deleteBackup(manager, req.params.id, req.user.id, req.body.name)));
-
-  // --- players ------------------------------------------------------------
-  router.get('/servers/:id/players/ops', auth, wrap(async (req) => players.getOps(manager, req.params.id, req.user.id)));
-  router.post('/servers/:id/players/ops', auth, wrap(async (req) => players.addOp(manager, req.params.id, req.user.id, req.body.name)));
-  router.delete('/servers/:id/players/ops', auth, wrap(async (req) => players.removeOp(manager, req.params.id, req.user.id, req.body.name)));
-  router.get('/servers/:id/players/whitelist', auth, wrap(async (req) => players.getWhitelist(manager, req.params.id, req.user.id)));
-  router.post('/servers/:id/players/whitelist', auth, wrap(async (req) => players.addWhitelist(manager, req.params.id, req.user.id, req.body.name)));
-  router.delete('/servers/:id/players/whitelist', auth, wrap(async (req) => players.removeWhitelist(manager, req.params.id, req.user.id, req.body.name)));
-  router.get('/servers/:id/players/bans', auth, wrap(async (req) => players.getBans(manager, req.params.id, req.user.id)));
-  router.post('/servers/:id/players/ban', auth, wrap(async (req) => players.banPlayer(manager, req.params.id, req.user.id, req.body.name, req.body.reason)));
-  router.post('/servers/:id/players/unban', auth, wrap(async (req) => players.unbanPlayer(manager, req.params.id, req.user.id, req.body.name)));
-
-  // --- plugins / mods -----------------------------------------------------
-  router.get('/addons/search', auth, wrap(async (req) => {
-    return plugins.searchAddons(req.query.q || '', req.query.type || 'plugin', req.query.mc || null);
+  // --- system info ------------------------------------------------------
+  router.get('/system', auth, wrap(async () => {
+    const cpus = os.cpus();
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    let disk = { total: 0, used: 0, free: 0 };
+    try {
+      const df = execSync('df -B1 / | tail -1', { encoding: 'utf8' }).trim().split(/\s+/);
+      disk = { total: Number(df[1]) || 0, used: Number(df[2]) || 0, free: Number(df[3]) || 0 };
+    } catch {}
+    let osInfo = '';
+    try { osInfo = execSync('cat /etc/os-release 2>/dev/null | head -2', { encoding: 'utf8' }).trim(); } catch {}
+    let uptime = '';
+    try { uptime = execSync('uptime -p', { encoding: 'utf8' }).trim(); } catch { uptime = Math.floor(os.uptime()) + 's'; }
+    let nodeVer = '', pythonVer = '';
+    try { nodeVer = execSync('node --version', { encoding: 'utf8' }).trim(); } catch {}
+    try { pythonVer = execSync('python3 --version', { encoding: 'utf8' }).trim(); } catch {}
+    return {
+      hostname: os.hostname(),
+      platform: os.platform(),
+      arch: os.arch(),
+      osInfo,
+      uptime,
+      cpu: {
+        model: cpus[0]?.model || 'unknown',
+        cores: cpus.length,
+        speed: cpus[0]?.speed || 0,
+        usage: Math.round((1 - os.loadavg()[0] / cpus.length) * 100),
+      },
+      memory: {
+        total: totalMem,
+        free: freeMem,
+        used: totalMem - freeMem,
+        percent: Math.round(((totalMem - freeMem) / totalMem) * 100),
+      },
+      disk,
+      runtimes: { node: nodeVer, python: pythonVer },
+      loadAvg: os.loadavg(),
+    };
   }));
-  router.post('/servers/:id/addons', auth, wrap(async (req) => {
-    return plugins.installAddon(manager, req.params.id, req.user.id, req.body.projectId, req.body.type || 'plugin');
-  }));
 
-  // --- scheduler ----------------------------------------------------------
-  router.get('/servers/:id/schedule', auth, wrap(async (req) => scheduler.listTasks(manager, req.params.id, req.user.id)));
-  router.post('/servers/:id/schedule', auth, wrap(async (req) => scheduler.addTask(manager, req.params.id, req.user.id, req.body)));
-  router.patch('/servers/:id/schedule/:taskId', auth, wrap(async (req) => scheduler.updateTask(manager, req.params.id, req.user.id, req.params.taskId, req.body)));
-  router.delete('/servers/:id/schedule/:taskId', auth, wrap(async (req) => scheduler.removeTask(manager, req.params.id, req.user.id, req.params.taskId)));
+  // --- processes (run anything: node, python, npm, ...) ------------------
+  router.get('/projects/:id/processes', auth, wrap(async (req) => manager.processes.list(req.user.id)));
+  router.post('/projects/:id/processes', auth, wrap(async (req) => {
+    const { command } = req.body;
+    if (!command) throw new Error('command required');
+    return manager.processes.run(req.params.id, req.user.id, command);
+  }));
+  router.delete('/projects/:id/processes/:pid', auth, wrap(async (req) => manager.processes.stop(req.params.pid, req.user.id)));
 
   return router;
 }

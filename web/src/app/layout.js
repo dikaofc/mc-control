@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'MC Control — Minecraft Server Hosting',
-  description: 'Host and manage Minecraft Java & Bedrock servers from your browser.',
+  title: 'VPS Panel — Web Terminal & File Manager',
+  description: 'Full VPS environment in your browser. Terminal, file manager, run anything.',
 };
 
 export default function RootLayout({ children }) {

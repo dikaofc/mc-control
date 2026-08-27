@@ -24,9 +24,6 @@ export default function AccountPage() {
             <button className="danger" onClick={() => { clearToken(); router.replace('/login'); }}>Log out</button>
           </div>
         )}
-        <p className="muted" style={{ marginTop: 16, fontSize: 12 }}>
-          The manager runs separately from this dashboard. Point <span className="mono">NEXT_PUBLIC_MANAGER_URL</span> at your deployed manager instance. See README.
-        </p>
       </div>
     </div>
   );

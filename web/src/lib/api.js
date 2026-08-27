@@ -1,20 +1,20 @@
-// Client-side API wrapper. Talks to the manager API (NEXT_PUBLIC_MANAGER_URL).
+// Client-side API wrapper for the VPS control panel manager.
 const BASE = process.env.NEXT_PUBLIC_MANAGER_URL || (typeof window !== 'undefined' ? '' : 'http://localhost:8080');
 
 function url(path) {
   if (BASE && BASE.startsWith('http')) return BASE.replace(/\/$/, '') + path;
-  return path; // same-origin (rewrite or dev proxy)
+  return path; // same-origin (combined deploy)
 }
 
 export function getToken() {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('mc_token');
+  return localStorage.getItem('vps_token');
 }
 export function setToken(t) {
-  if (typeof window !== 'undefined') localStorage.setItem('mc_token', t);
+  if (typeof window !== 'undefined') localStorage.setItem('vps_token', t);
 }
 export function clearToken() {
-  if (typeof window !== 'undefined') localStorage.removeItem('mc_token');
+  if (typeof window !== 'undefined') localStorage.removeItem('vps_token');
 }
 
 async function request(method, path, body, auth = true) {
@@ -42,47 +42,33 @@ export const api = {
   login: (username, password) => request('POST', '/api/auth/login', { username, password }, false),
   register: (username, password) => request('POST', '/api/auth/register', { username, password }, false),
   me: () => request('GET', '/api/auth/me'),
-  software: () => request('GET', '/api/software'),
-  versions: (software) => request('GET', `/api/software/${software}/versions`),
-  servers: () => request('GET', '/api/servers'),
-  getServer: (id) => request('GET', `/api/servers/${id}`),
-  createServer: (body) => request('POST', '/api/servers', body),
-  updateServer: (id, body) => request('PATCH', `/api/servers/${id}`, body),
-  deleteServer: (id) => request('DELETE', `/api/servers/${id}`),
-  install: (id, software, version) => request('POST', `/api/servers/${id}/install`, { software, version }),
-  start: (id) => request('POST', `/api/servers/${id}/start`, {}),
-  stop: (id, force) => request('POST', `/api/servers/${id}/stop`, { force }),
-  restart: (id) => request('POST', `/api/servers/${id}/restart`, {}),
-  command: (id, command) => request('POST', `/api/servers/${id}/command`, { command }),
-  console: (id, tail) => request('GET', `/api/servers/${id}/console?tail=${tail || 500}`),
-  files: (id, path) => request('GET', `/api/servers/${id}/files?path=${encodeURIComponent(path || '')}`),
-  readFile: (id, path) => request('GET', `/api/servers/${id}/files/read?path=${encodeURIComponent(path)}`),
-  writeFile: (id, path, content) => request('POST', `/api/servers/${id}/files/write`, { path, content }),
-  createPath: (id, path, isDir) => request('POST', `/api/servers/${id}/files/create`, { path, isDir }),
-  deletePath: (id, path) => request('DELETE', `/api/servers/${id}/files?path=${encodeURIComponent(path)}`),
-  backups: (id) => request('GET', `/api/servers/${id}/backups`),
-  createBackup: (id, name) => request('POST', `/api/servers/${id}/backups`, { name }),
-  restoreBackup: (id, name) => request('POST', `/api/servers/${id}/backups/restore`, { name }),
-  deleteBackup: (id, name) => request('DELETE', `/api/servers/${id}/backups`, { name }),
-  ops: (id) => request('GET', `/api/servers/${id}/players/ops`),
-  addOp: (id, name) => request('POST', `/api/servers/${id}/players/ops`, { name }),
-  removeOp: (id, name) => request('DELETE', `/api/servers/${id}/players/ops`, { name }),
-  whitelist: (id) => request('GET', `/api/servers/${id}/players/whitelist`),
-  addWhitelist: (id, name) => request('POST', `/api/servers/${id}/players/whitelist`, { name }),
-  removeWhitelist: (id, name) => request('DELETE', `/api/servers/${id}/players/whitelist`, { name }),
-  bans: (id) => request('GET', `/api/servers/${id}/players/bans`),
-  ban: (id, name, reason) => request('POST', `/api/servers/${id}/players/ban`, { name, reason }),
-  unban: (id, name) => request('POST', `/api/servers/${id}/players/unban`, { name }),
-  searchAddons: (q, type, mc) => request('GET', `/api/addons/search?q=${encodeURIComponent(q)}&type=${type}&mc=${mc || ''}`),
-  installAddon: (id, projectId, type) => request('POST', `/api/servers/${id}/addons`, { projectId, type }),
-  schedule: (id) => request('GET', `/api/servers/${id}/schedule`),
-  addTask: (id, body) => request('POST', `/api/servers/${id}/schedule`, body),
-  updateTask: (id, taskId, body) => request('PATCH', `/api/servers/${id}/schedule/${taskId}`, body),
-  removeTask: (id, taskId) => request('DELETE', `/api/servers/${id}/schedule/${taskId}`),
+
+  // projects
+  projects: () => request('GET', '/api/projects'),
+  getProject: (id) => request('GET', `/api/projects/${id}`),
+  createProject: (body) => request('POST', '/api/projects', body),
+  renameProject: (id, name) => request('PATCH', `/api/projects/${id}`, { name }),
+  deleteProject: (id) => request('DELETE', `/api/projects/${id}`),
+
+  // files
+  files: (id, path) => request('GET', `/api/projects/${id}/files?path=${encodeURIComponent(path || '')}`),
+  readFile: (id, path) => request('GET', `/api/projects/${id}/files/read?path=${encodeURIComponent(path)}`),
+  writeFile: (id, path, content) => request('POST', `/api/projects/${id}/files/write`, { path, content }),
+  createPath: (id, path, isDir) => request('POST', `/api/projects/${id}/files/create`, { path, isDir }),
+  deletePath: (id, path) => request('DELETE', `/api/projects/${id}/files?path=${encodeURIComponent(path)}`),
+  renamePath: (id, from, to) => request('POST', `/api/projects/${id}/files/rename`, { from, to }),
+
+  // processes
+  processes: (id) => request('GET', `/api/projects/${id}/processes`),
+  runProcess: (id, command) => request('POST', `/api/projects/${id}/processes`, { command }),
+  stopProcess: (id, pid) => request('DELETE', `/api/projects/${id}/processes/${pid}`),
+
+  // system
+  system: () => request('GET', '/api/system'),
 };
 
-// WebSocket console connection helper.
-export function consoleSocket(serverId, onMessage) {
+// Terminal (PTY) WebSocket.
+export function terminalSocket(projectId, onMessage) {
   const token = getToken();
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
   let host;
@@ -92,7 +78,25 @@ export function consoleSocket(serverId, onMessage) {
   } else {
     host = proto + '://' + window.location.host;
   }
-  const ws = new WebSocket(`${host}/ws?serverId=${serverId}&token=${token}`);
+  const ws = new WebSocket(`${host}/ws?mode=terminal&projectId=${projectId || ''}&token=${token}`);
+  ws.onmessage = (e) => {
+    try { onMessage(JSON.parse(e.data)); } catch {}
+  };
+  return ws;
+}
+
+// Process-output WebSocket (streams output of background runs).
+export function processSocket(projectId, onMessage) {
+  const token = getToken();
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  let host;
+  if (BASE && BASE.startsWith('http')) {
+    const u = new URL(BASE);
+    host = (proto === 'wss' ? 'wss' : 'ws') + '://' + u.host;
+  } else {
+    host = proto + '://' + window.location.host;
+  }
+  const ws = new WebSocket(`${host}/ws?projectId=${projectId}&token=${token}`);
   ws.onmessage = (e) => {
     try { onMessage(JSON.parse(e.data)); } catch {}
   };

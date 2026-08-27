@@ -12,9 +12,8 @@ export default function Nav() {
   return (
     <div className="nav">
       <div className="nav-inner">
-        <Link href="/" className="brand">MC<span>Control</span></Link>
-        <Link href="/">Servers</Link>
-        <Link href="/software">Software</Link>
+        <Link href="/" className="brand">VPS<span>Panel</span></Link>
+        <Link href="/">Workspaces</Link>
         <div className="flex1" />
         <Link href="/account">Account</Link>
         <button onClick={logout} style={{ padding: '4px 10px' }}>Logout</button>

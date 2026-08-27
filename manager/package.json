@@ -15,6 +15,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
+    "node-pty": "^1.0.0",
     "ws": "^8.18.0"
   },
   "license": "MIT"
