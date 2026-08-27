@@ -1,12 +1,15 @@
 'use client';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Nav from '../../components/Nav';
 import { api, getToken } from '../../lib/api';
-import Terminal from '../../components/Terminal';
 import FilesTab from '../../components/FilesTab';
 import ProcessesTab from '../../components/ProcessesTab';
 import SystemTab from '../../components/SystemTab';
+
+// xterm uses `self` (browser global) — must be dynamically imported with ssr: false.
+const Terminal = dynamic(() => import('../../components/Terminal'), { ssr: false });
 
 const TABS = [
   { id: 'terminal', label: 'Terminal' },

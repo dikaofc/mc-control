@@ -19,7 +19,10 @@ if (!process.env.MC_SESSION_SECRET || config.sessionSecret === 'dev-insecure-sec
 const manager = new Manager();
 
 const app = express();
-app.use(cors());
+// Open by default (combined deploy is same-origin). In two-service mode, set
+// MC_CORS_ORIGIN to the dashboard URL to restrict cross-origin API access.
+const corsOrigin = process.env.MC_CORS_ORIGIN || true;
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '5mb' }));
 
 const limiter = RateLimit({ windowMs: 15 * 60 * 1000, max: 300 });

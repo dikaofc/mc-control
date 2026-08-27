@@ -11,6 +11,9 @@ export class ProcessManager {
   constructor(manager) {
     this.manager = manager;
     this.processes = new Map(); // id -> { id, projectId, cmd, pid, status, startedAt, child }
+    // Bound concurrent processes per user to limit resource exhaustion / abuse.
+    this.maxPerUser = Number(process.env.MC_MAX_PROCESSES || 20);
+    this._buf = new Map(); // id -> leftover partial line
   }
 
   workspaceDir(projectId, userId) {
@@ -31,6 +34,8 @@ export class ProcessManager {
 
   run(projectId, userId, cmd, opts = {}) {
     if (!cmd || !cmd.trim()) throw new Error('command required');
+    const running = [...this.processes.values()].filter((p) => p.ownerId === userId && p.status === 'running').length;
+    if (running >= this.maxPerUser) throw new Error(`process limit reached (max ${this.maxPerUser})`);
     const cwd = this.workspaceDir(projectId, userId);
     const id = uid('proc');
     const child = spawn('/bin/sh', ['-c', cmd], {
@@ -43,17 +48,29 @@ export class ProcessManager {
       startedAt: Date.now(), child,
     };
     this.processes.set(id, rec);
+    this._buf.set(id, '');
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
     const emit = (line) => this.manager._broadcast(projectId, { type: 'process', id, line });
-    child.stdout.on('data', (d) => d.split(/\r?\n/).forEach((l) => l && emit(l)));
-    child.stderr.on('data', (d) => d.split(/\r?\n/).forEach((l) => l && emit(l)));
+    // Buffer by newline so partial trailing chunks are flushed on the next chunk.
+    const drain = (stream, chunk) => {
+      let buf = this._buf.get(id) + chunk;
+      const parts = buf.split(/\r?\n/);
+      this._buf.set(id, parts.pop()); // keep the trailing partial line
+      for (const l of parts) emit(l);
+    };
+    child.stdout.on('data', (d) => drain('stdout', d));
+    child.stderr.on('data', (d) => drain('stderr', d));
     child.on('exit', (code) => {
+      const tail = this._buf.get(id);
+      if (tail) emit(tail);
+      this._buf.delete(id);
       rec.status = 'exited';
       this.manager._broadcast(projectId, { type: 'process-exit', id, code });
       this.processes.delete(id);
     });
     child.on('error', (err) => {
+      this._buf.delete(id);
       rec.status = 'error';
       this.manager._broadcast(projectId, { type: 'process-exit', id, code: -1, error: err.message });
       this.processes.delete(id);
