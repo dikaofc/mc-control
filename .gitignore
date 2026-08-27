@@ -1,0 +1,13 @@
+node_modules/
+data/
+manager/data/
+manager/manager.log
+*.log
+.next/
+out/
+.env
+.env.local
+web/.next/
+web/out/
+manager/data/
+**/.DS_Store

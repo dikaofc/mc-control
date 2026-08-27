@@ -1,0 +1,39 @@
+# Railway project config. Deploys two services from one repo:
+#   - manager : Node control plane that spawns real Minecraft servers (needs Java + a volume)
+#   - web     : Next.js dashboard, talks to manager via NEXT_PUBLIC_MANAGER_URL
+[build]
+builder = "dockerfile"
+dockerfilePath = "manager/Dockerfile"
+# (The web service overrides its dockerfilePath below.)
+
+[[services]]
+name = "manager"
+dockerfilePath = "manager/Dockerfile"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+  [services.env]
+  PORT = "8090"
+  MC_SESSION_SECRET = "CHANGE_ME_IN_RAILWAY_DASHBOARD"
+  MC_DEFAULT_MEM = "768"
+  MC_MAX_MEM = "1024"
+
+  # Persist worlds, backups and the db across restarts.
+  [services.volumes]
+  "/data" = "/data"
+
+[[services]]
+name = "web"
+dockerfilePath = "web/Dockerfile"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+  [services.env]
+  PORT = "3000"
+  # Points the dashboard at the manager service. Railway resolves
+  # ${{ services.manager.url }} to the manager's public URL at deploy time.
+  NEXT_PUBLIC_MANAGER_URL = "${{ services.manager.url }}"
